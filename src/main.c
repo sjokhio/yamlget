@@ -8,7 +8,10 @@
  */
 
 #include "yamlget.h"
+#include "yamlget/lexer.h"
+#include "yamlget/parser.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,14 +69,45 @@ int main(int argc, char *argv[])
         return YAMLGET_EXIT_BAD_ARGS;
     }
 
-    /*
-     * Parser and lookup are not yet implemented.
-     * The stubs below represent the call sites that will be filled in
-     * during M2 (lexer), M3 (parser), and M4 (lookup).
-     */
+    /* ── Split the dot-notation path ──────────────────────────────────────── */
 
-    (void)filepath; /* suppress unused-variable warning until parser lands */
+    char segs[YG_PATH_MAX_DEPTH][YG_KEY_MAX];
+    int  seg_count = yg_path_split(keypath, segs, YG_PATH_MAX_DEPTH);
 
-    fprintf(stderr, PROG ": parser not yet implemented\n");
-    return YAMLGET_EXIT_INTERNAL;
+    if (seg_count < 0) {
+        fprintf(stderr, PROG ": invalid key path '%s' "
+                "(empty segment, trailing dot, or segment too long)\n", keypath);
+        return YAMLGET_EXIT_BAD_ARGS;
+    }
+
+    /* ── Open input ───────────────────────────────────────────────────────── */
+
+    FILE       *f;
+    const char *source;
+
+    if (strcmp(filepath, "-") == 0) {
+        f      = stdin;
+        source = "<stdin>";
+    } else {
+        f = fopen(filepath, "r");
+        if (!f) {
+            fprintf(stderr, PROG ": cannot open '%s': %s\n",
+                    filepath, strerror(errno));
+            return YAMLGET_EXIT_FILE_ERROR;
+        }
+        source = filepath;
+    }
+
+    /* ── Stream lookup ────────────────────────────────────────────────────── */
+
+    int rc = yg_stream_lookup(f, source, segs, seg_count);
+
+    if (f != stdin)
+        fclose(f);
+
+    if (rc == YAMLGET_EXIT_NOT_FOUND) {
+        fprintf(stderr, PROG ": key not found: '%s'\n", keypath);
+    }
+
+    return rc;
 }

@@ -7,7 +7,7 @@ BINDIR  := $(PREFIX)/bin
 
 # ── Main binary ───────────────────────────────────────────────────────────────
 
-SRCS   := src/main.c src/lexer.c
+SRCS   := src/main.c src/lexer.c src/parser.c
 OBJS   := $(SRCS:.c=.o)
 TARGET := yamlget
 
@@ -16,7 +16,8 @@ TARGET := yamlget
 TEST_LEXER_SRCS := tests/lexer/test_lexer.c src/lexer.c
 TEST_LEXER_BIN  := tests/lexer/test_lexer
 
-.PHONY: all clean test test-lexer test-lexer-build test-all install uninstall debug asan
+.PHONY: all clean test test-lexer test-lexer-build test-integration \
+        test-all install uninstall debug asan asan-test
 
 all: $(TARGET)
 
@@ -28,9 +29,8 @@ src/%.o: src/%.c
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
-# `make test` runs only what is currently expected to pass (lexer tests).
-# Integration tests (make test-all) require M3+ and will fail until then.
-test: test-lexer
+# `make test` runs the full suite: lexer unit tests + integration tests.
+test: test-lexer test-integration
 
 test-lexer: test-lexer-build
 	@bash tests/lexer/run_lexer_tests.sh
@@ -40,9 +40,11 @@ test-lexer-build: $(TEST_LEXER_BIN)
 $(TEST_LEXER_BIN): $(TEST_LEXER_SRCS)
 	$(CC) $(CFLAGS) -Iinclude -o $@ $^
 
-# Full integration tests — runs against the main binary; requires M3+.
-test-all: all test-lexer
+test-integration: $(TARGET)
 	@bash tests/run_tests.sh
+
+# Alias kept for back-compat with earlier Makefile versions.
+test-all: test
 
 # ── Install / uninstall ───────────────────────────────────────────────────────
 
@@ -68,5 +70,6 @@ asan: CFLAGS += -g -fsanitize=address,undefined -O1
 asan: $(TARGET)
 
 asan-test: CFLAGS += -g -fsanitize=address,undefined -O1
-asan-test: $(TEST_LEXER_BIN)
+asan-test: $(TARGET) $(TEST_LEXER_BIN)
 	@bash tests/lexer/run_lexer_tests.sh
+	@bash tests/run_tests.sh

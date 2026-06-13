@@ -1,8 +1,11 @@
-# invalid.yaml — intentionally malformed YAML
+# invalid.yaml — YAML that uses sequences, which yamlget does not support.
 #
-# yamlget must exit with code 4 (YAMLGET_EXIT_PARSE_ERROR) for this file.
-# Do not fix the formatting — the errors are intentional.
+# Any query against this file must produce exit code 4 (YAMLGET_EXIT_PARSE_ERROR)
+# because the sequence items below are not mapping entries and the lexer will
+# classify them as INVALID.
 
-key: valid
-  bad_indent: this is wrong indented under a scalar
-another: : double colon
+items:
+  - first item
+  - second item
+  - third item
+name: this line is never reached

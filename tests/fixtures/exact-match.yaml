@@ -1,0 +1,21 @@
+# exact-match.yaml — verify exact key matching (no prefix or suffix matches).
+#
+# Keys with shared prefixes must not bleed into one another.
+
+service:
+  name: correct
+  name_suffix: wrong_suffix
+  names: wrong_plural
+  rename: wrong_rename
+
+database:
+  name: db_name
+  namespace: db_namespace
+
+deploy:
+  image:
+    name: image_name
+    name_tag: image_tag
+
+other_service:
+  name: other_name

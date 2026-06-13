@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — M3 (Streaming Path Resolution)
+- `src/parser.c` / `include/yamlget/parser.h` — streaming dot-path resolver
+- `yg_path_split()`: splits dot-notation path into segments; rejects leading/trailing/double dots
+- `yg_stream_lookup()`: single-pass streaming lookup using a pop-based indentation stack (no AST,
+  no dynamic allocation)
+- Sibling-branch isolation: unmatched mapping keys push "blocked" frames so deeper lines
+  in the wrong branch cannot false-positive match later path segments
+- Exact key matching — `app.name` is never matched by `app.name_suffix` or `app.names`
+- KEY_ONLY at the target depth prints an empty line and exits 0 (null/empty value is valid)
+- INVALID lexer lines propagate immediately as `YAMLGET_EXIT_PARSE_ERROR` (exit 4)
+- `main.c` updated: file/stdin opening, path validation, full end-to-end wiring
+- Stdin support via `-` filename
+- Integration test suite expanded to 61 end-to-end tests (70 total with lexer tests)
+- `tests/fixtures/exact-match.yaml` — fixture for exact key-matching verification
+- `tests/fixtures/invalid.yaml` revised: uses YAML sequences to trigger parse error predictably
+- `tests/run_tests.sh` updated with `check_exact` and `check_stdin` helpers
+- CI workflow updated: all five jobs now run `make test` (lexer + integration)
+- `make test` now covers both lexer and integration tests; `make asan-test` covers both with
+  ASan+UBSan
+
 ### Added — M2 (Streaming Lexer Foundation)
 - `src/lexer.c` — streaming line-oriented YAML lexer; no dynamic allocation
 - `include/yamlget/lexer.h` — public lexer API (`yg_lexer_t`, `yg_line_t`, `yg_line_type_t`)

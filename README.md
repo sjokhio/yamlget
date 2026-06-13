@@ -25,15 +25,15 @@ $ yamlget config.yaml app.version
 
 ## Status
 
-> **Pre-release — M2 complete.** The streaming lexer foundation is implemented and tested. The parser (M3) and lookup (M4) milestones are next. See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) for full scope.
+> **Pre-release — M3 complete. Core functionality works.** `yamlget <file> <path>` is fully operational for nested mapping lookup. See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) for remaining M5 polish work.
 
 | Milestone | Status |
 |-----------|--------|
 | M1 — Repository skeleton | ✅ Complete |
 | M2 — Streaming lexer | ✅ Complete |
-| M3 — Parser | In progress |
-| M4 — Lookup | Not started |
-| M5 — Integration & polish | Not started |
+| M3 — Streaming path resolution | ✅ Complete |
+| M4 — Lookup (merged into M3) | ✅ Complete |
+| M5 — Polish & release | In progress |
 
 ## Installation
 
@@ -132,20 +132,39 @@ echo "Deploying version $VERSION"
   run: echo "VERSION=$(yamlget config.yaml app.version)" >> $GITHUB_ENV
 ```
 
+## Supported YAML subset
+
+`yamlget` targets the mapping-heavy YAML common in CI/CD config files.
+
+**Supported:**
+- Block mappings, arbitrarily nested, any indentation style (spaces only)
+- Scalar values: plain, single-quoted (`'...'`), double-quoted (`"..."`)
+- Inline comment stripping (`key: value  # ignored`)
+- Blank lines and comments ignored
+- Empty values (`key:` or `key: ""`) — prints empty line, exits 0
+- stdin via `-` filename
+
+**Not supported (v0.1.0):**
+- Sequences / arrays (`- item`) — exits 4
+- Block scalars (`|`, `>`) — treated as plain scalar containing the indicator
+- Multi-document streams (`---`) — treated as parse error
+- Anchors, aliases, merge keys — keys containing `*` / `&` / `<<` are matched literally if on the path, ignored otherwise
+
 ## v0.1.0 Scope
 
 - [x] Streaming lexer: blank/comment/key-only/key-value line classification
 - [x] Plain, single-quoted, and double-quoted scalar extraction
 - [x] Indentation depth tracking; tab detection
-- [x] Errors to stderr with filename and line number; defined exit codes
-- [ ] Parser: indentation-stack descent (M3)
-- [ ] Dot-notation path lookup in nested mappings (M4)
-- [ ] Raw value output to stdout (M5)
-- [ ] stdin support (`-` as filename) (M5)
+- [x] Streaming parser with pop-based indentation stack (no AST)
+- [x] Dot-notation path lookup with sibling-branch isolation
+- [x] Exact key matching — no prefix or suffix bleed
+- [x] Raw value output to stdout; errors to stderr with filename and line number
+- [x] stdin support via `-` filename
+- [x] 70 tests (9 lexer unit + 61 integration), zero ASan/UBSan errors
+- [ ] Man page — M5
 - [ ] Array indexing — deferred to v0.2.0
 - [ ] JSON output (`--json`) — deferred
 - [ ] Shell export format (`--export`) — deferred
-- [ ] Multi-document YAML — deferred
 
 See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) for full details.
 

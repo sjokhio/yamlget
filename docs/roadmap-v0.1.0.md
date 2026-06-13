@@ -82,27 +82,32 @@ Encountering any unsupported construct in the **path to the requested key** resu
 - [ ] Block scalars (`|` and `>`) — deferred to M3 or later
 - [ ] Column tracking — deferred (line numbers are sufficient for v0.1.0 error messages)
 
-### M3 — Parser
-- [ ] `src/parser.c` / `include/yamlget/parser.h`
-- [ ] Streaming single-pass descent driven by lexer output (no AST construction)
-- [ ] Indentation-stack based nesting — walk only the path segments needed
-- [ ] Strict memory safety — verified with ASan
-- [ ] Tests: `tests/parser/`
+### M3 — Streaming Path Resolution ✅
+- [x] `src/parser.c` / `include/yamlget/parser.h`
+- [x] `yg_path_split()` — splits dot-notation path into up to 32 segments; rejects empty/trailing/double dots
+- [x] `yg_stream_lookup()` — single-pass, O(n) streaming lookup; no AST, no dynamic allocation
+- [x] Pop-based indentation stack (max 64 frames) tracks matched vs unmatched nesting levels
+- [x] Sibling-branch isolation: unmatched frames block deeper keys from false-positive matching
+- [x] Exact key matching — `app.name` cannot match `app.name_extra` or `app.names`
+- [x] KEY_ONLY at the target depth prints empty value and exits 0 (key exists, value is null/empty)
+- [x] INVALID lexer lines abort with `YAMLGET_EXIT_PARSE_ERROR` (exit 4)
+- [x] Stdin support via `-` filename
+- [x] `main.c` wired end-to-end: argument parsing → path split → file/stdin open → stream lookup
+- [x] 70 integration tests pass (9 lexer + 61 end-to-end); zero ASan/UBSan errors
+- [x] `make test` runs both lexer and integration test suites
 
-### M4 — Lookup
-- [ ] `src/lookup.c` / `include/yamlget/lookup.h`
-- [ ] Splits dot-notation path into segments
-- [ ] Walks the parsed tree
-- [ ] Returns the scalar string value or `NOT_FOUND`
-- [ ] Tests: `tests/lookup/`
+### M4 — Folded into M3 ✅
+Path splitting and lookup were implemented together in `parser.c` without the separate
+tree-walker layer the original plan described (no AST means no tree to walk).
+`src/lookup.c` and `include/yamlget/lookup.h` are not needed.
 
 ### M5 — Integration and polish
-- [ ] End-to-end integration tests against `tests/fixtures/`
-- [ ] `--version` flag
-- [ ] `--help` flag
+- [x] End-to-end integration tests (70 tests, all passing)
+- [x] `--version` flag
+- [x] `--help` flag
 - [ ] Man page (`docs/yamlget.1`)
 - [ ] `make install` tested on Linux and macOS
-- [ ] All CI jobs green
+- [ ] All CI jobs green (needs push to verify)
 - [ ] `CHANGELOG.md` updated
 - [ ] Tag `v0.1.0`
 

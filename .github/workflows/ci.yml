@@ -6,8 +6,7 @@ on:
   pull_request:
     branches: [main]
 
-# `make test` runs the lexer unit tests (M2+).
-# `make test-all` will run full integration tests once M3 (parser) lands.
+# `make test` runs lexer unit tests + integration tests (M3+).
 
 jobs:
   # ── Linux ─────────────────────────────────────────────────────────────────
@@ -20,7 +19,7 @@ jobs:
       - name: Build
         run: make CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test (lexer)
+      - name: Test
         run: make test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
   linux-clang:
@@ -35,7 +34,7 @@ jobs:
       - name: Build
         run: make CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test (lexer)
+      - name: Test
         run: make test CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
   linux-gcc-asan:
@@ -44,8 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build with sanitizers
-        run: make asan-test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -g -fsanitize=address,undefined -O1"
+      - name: Build and test with sanitizers
+        run: |
+          make asan-test CC=gcc \
+            CFLAGS="-std=c99 -Wall -Wextra -g -fsanitize=address,undefined -O1"
 
   # ── macOS ──────────────────────────────────────────────────────────────────
   macos-clang:
@@ -57,7 +58,7 @@ jobs:
       - name: Build
         run: make CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test (lexer)
+      - name: Test
         run: make test CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
   # ── Windows ────────────────────────────────────────────────────────────────
@@ -74,7 +75,8 @@ jobs:
         shell: cmd
         run: |
           cl /nologo /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS ^
-             /Fe:yamlget.exe /Iinclude src\main.c src\lexer.c
+             /Fe:yamlget.exe /Iinclude ^
+             src\main.c src\lexer.c src\parser.c
 
       - name: Build lexer test binary
         shell: cmd
@@ -83,7 +85,7 @@ jobs:
              /Fe:tests\lexer\test_lexer.exe /Iinclude ^
              tests\lexer\test_lexer.c src\lexer.c
 
-      - name: Test (lexer)
+      - name: Test (lexer — Windows PowerShell runner)
         shell: pwsh
         run: |
           $pass = 0; $fail = 0
@@ -97,12 +99,10 @@ jobs:
             }
             $actual   = & .\tests\lexer\test_lexer.exe $yamlFile 2>$null
             $expected = Get-Content $_.FullName -Raw
-            # Normalise line endings for comparison
-            $actual   = $actual -join "`n"
-            $expected = $expected.TrimEnd("`r`n", "`n")
+            $actual   = ($actual -join "`n").TrimEnd()
+            $expected = $expected.TrimEnd("`r", "`n")
             if ($actual -eq $expected) {
-              Write-Host "PASS  $name"
-              $pass++
+              Write-Host "PASS  $name"; $pass++
             } else {
               Write-Host "FAIL  $name"
               Write-Host "  Expected: $expected"
@@ -110,6 +110,40 @@ jobs:
               $fail++
             }
           }
+          Write-Host "Results: $pass passed, $fail failed"
+          if ($fail -gt 0) { exit 1 }
+
+      - name: Test (integration — Windows PowerShell runner)
+        shell: pwsh
+        run: |
+          $pass = 0; $fail = 0
+          $bin = ".\yamlget.exe"
+          $fx  = "tests\fixtures"
+
+          function Check {
+            param($desc, $expectExit, $expectOut, [string[]]$args)
+            $actual = & $bin @args 2>$null
+            $code   = $LASTEXITCODE
+            if ($code -ne $expectExit) {
+              Write-Host "FAIL  $desc (exit $code, want $expectExit)"
+              $script:fail++; return
+            }
+            if ($expectOut -ne $null -and $actual -ne $expectOut) {
+              Write-Host "FAIL  $desc (output '$actual', want '$expectOut')"
+              $script:fail++; return
+            }
+            Write-Host "PASS  $desc"; $script:pass++
+          }
+
+          Check "--version" 0 "0.1.0" @("--version")
+          Check "no args → 2"    2 $null @()
+          Check "missing file → 3" 3 $null @("/nonexistent/file.yaml", "key")
+          Check "app.name"       0 "myservice"   @("$fx\nested.yaml", "app.name")
+          Check "database.port"  0 "5432"        @("$fx\nested.yaml", "database.port")
+          Check "3-level path"   0 "admin"       @("$fx\nested.yaml", "database.credentials.username")
+          Check "not found → 1"  1 $null         @("$fx\nested.yaml", "nonexistent")
+          Check "invalid → 4"    4 $null         @("$fx\invalid.yaml", "name")
+
           Write-Host "Results: $pass passed, $fail failed"
           if ($fail -gt 0) { exit 1 }
 
@@ -123,6 +157,6 @@ jobs:
         shell: bash
         run: make CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test (lexer)
+      - name: Test
         shell: bash
         run: make test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
