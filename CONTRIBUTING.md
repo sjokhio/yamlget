@@ -96,6 +96,10 @@ Remove unused include in lexer
 
 Keep the subject under 72 characters. Add a body paragraph if the motivation is non-obvious.
 
+## AI-assisted contributions
+
+This project uses AI coding assistants as development support. If you used an AI assistant substantially while preparing your contribution, please mention it briefly in your pull request description. See [AI_USAGE.md](AI_USAGE.md) for the full policy.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).

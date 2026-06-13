@@ -304,6 +304,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions are welcome.
 
 **Key constraint:** `yamlget` must remain a dependency-free pure-C binary. No new library dependencies, no new runtime requirements. Open an issue before writing code if you are unsure whether a feature fits.
 
+This project uses AI coding assistants as development support. See [AI_USAGE.md](AI_USAGE.md) for details.
+
 ---
 
 ## License
