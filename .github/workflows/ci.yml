@@ -111,6 +111,7 @@ jobs:
           }
           Write-Host "Results: $pass passed, $fail failed"
           if ($fail -gt 0) { exit 1 }
+          exit 0
 
       - name: Test (integration — Windows PowerShell runner)
         shell: pwsh
@@ -145,6 +146,7 @@ jobs:
 
           Write-Host "Results: $pass passed, $fail failed"
           if ($fail -gt 0) { exit 1 }
+          exit 0
 
   windows-mingw:
     name: Windows / MinGW (gcc)
