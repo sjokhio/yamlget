@@ -1,0 +1,47 @@
+# edge-cases.yaml — scalars with tricky formatting
+#
+# Used to verify correct handling of quoting, whitespace, special characters,
+# and multiline scalars. These are common parser traps.
+
+# Quoted strings
+single_quoted: 'hello world'
+double_quoted: "hello world"
+quoted_with_colon: "host:port"
+quoted_empty: ""
+quoted_spaces: '   leading and trailing   '
+
+# Strings that look like other types
+looks_like_int: "42"
+looks_like_float: "3.14"
+looks_like_bool: "true"
+looks_like_null: "null"
+
+# Multiline — literal block (newlines preserved)
+literal_block: |
+  line one
+  line two
+  line three
+
+# Multiline — folded block (newlines become spaces)
+folded_block: >
+  this is a long sentence
+  that wraps across lines
+  but becomes one line
+
+# Special characters in values
+url: https://example.com/path?q=1&r=2
+path: /usr/local/bin/yamlget
+regex_like: '^v[0-9]+\.[0-9]+'
+json_like: '{"key": "value"}'
+
+# Keys with underscores and hyphens (hyphens need quoting or flow context)
+underscore_key: works fine
+"hyphen-key": also works
+
+# Deeply nested to stress indentation tracking
+a:
+  b:
+    c:
+      d:
+        e:
+          value: deep

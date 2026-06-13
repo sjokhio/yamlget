@@ -1,0 +1,12 @@
+# simple.yaml — flat key-value pairs; no nesting
+#
+# Used to verify basic scalar extraction.
+
+name: myservice
+version: 1.4.2
+port: 8080
+enabled: true
+debug: false
+ratio: 0.75
+nothing: ~
+empty:

@@ -1,0 +1,39 @@
+# nested.yaml — deeply nested mappings
+#
+# Used to verify dot-notation path traversal across multiple levels.
+
+app:
+  name: myservice
+  version: 2.0.0
+  description: "A sample service for yamlget tests"
+
+database:
+  host: localhost
+  port: 5432
+  name: mydb
+  credentials:
+    username: admin
+    password: "s3cr3t"
+
+server:
+  http:
+    host: 0.0.0.0
+    port: 8080
+  grpc:
+    host: 0.0.0.0
+    port: 9090
+
+deploy:
+  region: us-east-1
+  replicas: 3
+  image:
+    repository: ghcr.io/example/myservice
+    tag: latest
+    pullPolicy: IfNotPresent
+
+logging:
+  level: info
+  format: json
+  output:
+    file: /var/log/myservice.log
+    rotate: true

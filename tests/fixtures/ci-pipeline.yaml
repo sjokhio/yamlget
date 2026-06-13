@@ -1,0 +1,56 @@
+# ci-pipeline.yaml — realistic CI/CD configuration
+#
+# Models a typical pipeline config that yamlget would be used against in
+# production. Used as the primary integration test fixture.
+
+project:
+  name: acme-backend
+  version: 3.1.4
+  language: go
+  go_version: "1.22"
+
+build:
+  image: golang:1.22-alpine
+  cache:
+    enabled: true
+    key: go-modules
+  command: go build -o bin/server ./cmd/server
+
+test:
+  command: go test ./...
+  coverage:
+    enabled: true
+    threshold: 80
+  timeout: 10m
+
+lint:
+  tool: golangci-lint
+  version: v1.57.0
+  config: .golangci.yml
+
+docker:
+  registry: ghcr.io
+  image: ghcr.io/acme/backend
+  tag: 3.1.4
+  platforms: linux/amd64,linux/arm64
+  push: true
+
+deploy:
+  environment: production
+  cluster: prod-us-east-1
+  namespace: acme
+  replicas: 5
+  rolling_update:
+    max_surge: 1
+    max_unavailable: 0
+  health_check:
+    path: /healthz
+    initial_delay: 10
+    period: 5
+
+notifications:
+  slack:
+    enabled: true
+    channel: "#deployments"
+    on_failure: true
+    on_success: false

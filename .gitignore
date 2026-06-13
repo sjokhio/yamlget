@@ -1,0 +1,52 @@
+# Build outputs
+yamlget
+yamlget.exe
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+build/
+dist/
+out/
+
+# Dependency / package managers (none used, but guard against accidents)
+node_modules/
+vendor/
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# MSVC
+*.pdb
+*.ilk
+*.exp
+*.suo
+*.user
+*.sln.docstates
+
+# CMake (if ever added)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# Test artifacts
+tests/output/
+*.test.log
+
+# Coverage
+*.gcda
+*.gcno
+coverage/
+lcov.info
+
+# Compile commands (useful but local)
+compile_commands.json

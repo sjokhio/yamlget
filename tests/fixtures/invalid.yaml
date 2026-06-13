@@ -1,0 +1,8 @@
+# invalid.yaml — intentionally malformed YAML
+#
+# yamlget must exit with code 4 (YAMLGET_EXIT_PARSE_ERROR) for this file.
+# Do not fix the formatting — the errors are intentional.
+
+key: valid
+  bad_indent: this is wrong indented under a scalar
+another: : double colon
