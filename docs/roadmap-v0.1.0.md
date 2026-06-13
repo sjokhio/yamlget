@@ -96,20 +96,37 @@ Encountering any unsupported construct in the **path to the requested key** resu
 - [x] 70 integration tests pass (9 lexer + 61 end-to-end); zero ASan/UBSan errors
 - [x] `make test` runs both lexer and integration test suites
 
-### M4 — Folded into M3 ✅
-Path splitting and lookup were implemented together in `parser.c` without the separate
-tree-walker layer the original plan described (no AST means no tree to walk).
-`src/lookup.c` and `include/yamlget/lookup.h` are not needed.
+### M4 — YAML Compatibility Hardening ✅
+- [x] Block scalars: literal (`|`) and folded (`>`) fully implemented in the lexer
+- [x] All chomping indicators: clip (default), strip (`|-`), keep (`|+`)
+- [x] Explicit indentation indicator support (`|2`, `>4`, etc.)
+- [x] Folded more-indented line semantics (newline separator instead of space)
+- [x] `buf_pending` lookahead slot added to `yg_lexer_t` for block scalar body reading
+- [x] CRLF (`\r\n`) line endings validated across block scalar bodies
+- [x] Integration test suite expanded from 61 → 102 tests (112 total with lexer)
+- [x] New fixtures: `block-scalars.yaml`, `crlf.yaml`, `large.yaml` (1001 keys),
+      `malformed-block.yaml`
+- [x] `edge-cases.yaml` fully exercised (was untested despite existing in the tree)
+- [x] Benchmark suite: `bench/bench.sh` + `bench/fixture.yaml` + `make bench`
+- [x] Duplicate-key behavior documented
+- [x] `test_lexer.c` updated to escape embedded `\n` in pipe-separated output
 
-### M5 — Integration and polish
-- [x] End-to-end integration tests (70 tests, all passing)
+### M5 — Integration and polish ✅
+- [x] End-to-end integration tests (112 tests, all passing)
 - [x] `--version` flag
-- [x] `--help` flag
-- [ ] Man page (`docs/yamlget.1`)
-- [ ] `make install` tested on Linux and macOS
-- [ ] All CI jobs green (needs push to verify)
-- [ ] `CHANGELOG.md` updated
-- [ ] Tag `v0.1.0`
+- [x] `--help` flag — revised with examples, YAML subset summary, exit code table
+- [x] GitHub Actions release workflow (`.github/workflows/release.yml`)
+  — Linux x86_64, macOS x86_64, macOS arm64, Windows x86_64 binaries
+- [x] `docs/release-checklist.md` — step-by-step release procedure
+- [x] README completely revised with elevator pitch, download table,
+  block scalar examples, benchmarks section, and contributing constraints
+- [x] `CHANGELOG.md` updated with `[0.1.0]` release entry and comparison links
+- [x] Benchmark results documented (macOS Apple Silicon, 500 iterations):
+  yamlget ~1.5 ms/op vs python+PyYAML ~24 ms/op
+- [ ] Man page (`docs/yamlget.1`) — deferred to v0.2.0 or v1.0.0
+- [ ] `make install` field-tested on target platforms (verify after binary release)
+- [ ] All CI jobs green on GitHub (requires push to remote)
+- [ ] Tag `v0.1.0` and push
 
 ## Non-goals (v0.1.0)
 

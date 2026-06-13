@@ -17,7 +17,7 @@ TEST_LEXER_SRCS := tests/lexer/test_lexer.c src/lexer.c
 TEST_LEXER_BIN  := tests/lexer/test_lexer
 
 .PHONY: all clean test test-lexer test-lexer-build test-integration \
-        test-all install uninstall debug asan asan-test
+        test-all install uninstall debug asan asan-test bench
 
 all: $(TARGET)
 
@@ -73,3 +73,7 @@ asan-test: CFLAGS += -g -fsanitize=address,undefined -O1
 asan-test: $(TARGET) $(TEST_LEXER_BIN)
 	@bash tests/lexer/run_lexer_tests.sh
 	@bash tests/run_tests.sh
+
+# Run the benchmark (defaults to 1000 iterations; override with BENCH_N=500).
+bench: $(TARGET)
+	@bash bench/bench.sh $(BENCH_N)

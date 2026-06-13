@@ -1,0 +1,64 @@
+# block-scalars.yaml — fixtures for block scalar (| and >) support
+
+# ── Literal block scalars (| — newlines preserved) ────────────────────────────
+
+script: |
+  echo hello
+  echo world
+
+multiline_literal: |
+  first line
+  second line
+  third line
+
+single_line_literal: |
+  only one line
+
+# ── Folded block scalars (> — newlines become spaces) ─────────────────────────
+
+description: >
+  This is a long description that
+  has been folded across multiple
+  lines.
+
+folded_single: >
+  just one line
+
+# ── Chomping indicators ───────────────────────────────────────────────────────
+
+stripped: |-
+  no trailing newline
+  from chomping
+
+kept: |+
+  with keep chomping
+
+# ── Empty block scalar ────────────────────────────────────────────────────────
+
+empty_block: |
+
+next_after_empty: found
+
+# ── Nested block scalar ───────────────────────────────────────────────────────
+
+nested:
+  literal: |
+    line one
+    line two
+  plain: simple_value
+  folded: >
+    folded nested
+    value here
+
+# ── Folded with more-indented lines (kept as literal within folded) ───────────
+
+folded_more_indent: >
+  preamble line
+    more indented keeps newlines
+  resuming normal
+
+# ── Block scalar followed immediately by sibling key ─────────────────────────
+
+first_key: |
+  block content
+second_key: sibling_value

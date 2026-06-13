@@ -1,0 +1,4 @@
+# malformed-block.yaml — tab in block scalar body triggers parse error
+key: |
+	tabbed line is invalid
+next: value

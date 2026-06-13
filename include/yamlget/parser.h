@@ -16,11 +16,12 @@
  * Supported YAML subset in v0.1.0:
  *   - Block mappings, arbitrarily nested (indent-based).
  *   - Scalar values: plain, single-quoted, double-quoted.
+ *   - Block scalars: literal (|) and folded (>), all chomping indicators.
  *   - Blank lines and comments (ignored).
+ *   - CRLF and LF line endings.
  *
  * Explicitly unsupported (returns YAMLGET_EXIT_PARSE_ERROR):
  *   - Sequences / arrays (- item).
- *   - Block scalars (| and >).
  *   - Any line the lexer cannot classify as a mapping entry.
  *
  * Silently unsupported (not present in the lookup path — ignored):

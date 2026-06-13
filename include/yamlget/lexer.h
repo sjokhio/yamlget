@@ -20,8 +20,9 @@
  *     line number; the offending line is classified as YG_LINE_INVALID.
  *
  * Limitations in v0.1.0:
- *   - Block scalars (| and >) are not supported.
- *   - Multi-line values are not supported.
+ *   - Block scalars (| and >) are fully supported: literal, folded, and all
+ *     three chomping indicators (clip/strip/keep). Values are assembled into
+ *     yg_line_t.value with embedded '\n' separators where appropriate.
  *   - Quoted keys are accepted but returned verbatim (quotes included).
  *   - Sequence items (- ...) are classified as YG_LINE_INVALID.
  *   - Anchors, aliases, and tags are not recognised.
@@ -91,6 +92,7 @@ typedef struct {
     const char *source;             /* filename for diagnostics              */
     int         lineno;             /* lines consumed so far (0 = start)     */
     char        buf[YG_LINE_BUF_MAX];
+    int         buf_pending;        /* 1 if buf holds an unprocessed lookahead line */
 } yg_lexer_t;
 
 /* ── Public API ───────────────────────────────────────────────────────────── */

@@ -1,0 +1,6 @@
+1|KEY_VALUE|0|literal|line one\nline two
+4|KEY_VALUE|0|folded|word one word two
+7|KEY_VALUE|0|strip|stripped\nvalue
+10|KEY_VALUE|0|keep|kept
+12|KEY_VALUE|0|after|plain
+13|EOF|0||

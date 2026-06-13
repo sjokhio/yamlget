@@ -1,0 +1,4 @@
+name: myservice
+version: 1.4.2
+port: 8080
+enabled: true

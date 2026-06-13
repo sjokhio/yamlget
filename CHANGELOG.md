@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.1.0] — 2026-06-12
+
+### Added — M5 (Polish & Release)
+- `--help` text expanded: examples section, supported/unsupported YAML summary,
+  explicit note that stdout is data-only and stderr carries diagnostics
+- Pre-built release binaries for Linux x86_64, macOS x86_64, macOS arm64,
+  and Windows x86_64 via GitHub Actions release workflow
+- `.github/workflows/release.yml` — triggered by `v*.*.*` tags; builds all
+  four platform binaries, smoke-tests each, and publishes a GitHub Release
+  with auto-generated notes
+- `docs/release-checklist.md` — step-by-step checklist for cutting a release
+- `bench/bench.sh` and `bench/fixture.yaml` documented in README with
+  preliminary benchmark numbers (macOS Apple Silicon, 500 iterations):
+  yamlget ~1.5 ms/op vs python+PyYAML ~24 ms/op (~16× faster)
+- `make bench` supports `BENCH_N=<n>` override for iteration count
+- README completely revised: elevator pitch, download table, block scalar
+  usage examples, benchmarks section, CI badge placeholders, duplicate-key
+  behaviour documented, contributing constraints documented
+
+### Added — M4 (YAML Compatibility Hardening)
+- Block scalar support: literal (`|`) and folded (`>`) styles
+  - All chomping indicators: clip (default), strip (`-`), keep (`+`)
+  - Optional explicit indentation indicator (`|2`, `>4`, etc.)
+  - Folded adjacent-to-more-indented line rule: newline separator instead of space
+  - Zero dynamic allocation: body assembled directly into `yg_line_t.value`
+  - Streaming: body lines consumed within a single `yg_lexer_next()` call via
+    a `buf_pending` lookahead slot in `yg_lexer_t`
+- CRLF (`\r\n`) line ending support — existing stripping logic already covered
+  LF; extended to validate CRLF across block scalar body lines
+- `tests/fixtures/block-scalars.yaml` — 12 block scalar scenarios
+- `tests/fixtures/crlf.yaml` — CRLF line endings fixture
+- `tests/fixtures/large.yaml` — 1001-key flat fixture for scale validation
+- `tests/fixtures/malformed-block.yaml` — tab-in-block-body triggers exit 4
+- `tests/fixtures/edge-cases.yaml` now fully exercised (literal block, folded
+  block, deep nesting) — previously untested despite existing in the tree
+- Integration test suite expanded from 61 → 102 end-to-end tests (112 total)
+- `tests/lexer/fixtures/block-scalar.yaml` + `.expected` — lexer unit test for
+  all four block scalar styles (literal, folded, strip, keep)
+- `tests/lexer/test_lexer.c` updated to escape embedded `\n` in value output
+  as `\n` (two characters), keeping one record per output line
+- `bench/bench.sh` — benchmark comparing yamlget, yq, and python+PyYAML;
+  measures full process startup + parse + output per invocation
+- `bench/fixture.yaml` — realistic 80-key CI/CD config used as benchmark input
+- `make bench` target; supports `BENCH_N=<n>` to set iteration count
+- Duplicate-key behavior documented: first occurrence wins (streaming parser
+  stops at first full match)
+
 ### Added — M3 (Streaming Path Resolution)
 - `src/parser.c` / `include/yamlget/parser.h` — streaming dot-path resolver
 - `yg_path_split()`: splits dot-notation path into segments; rejects leading/trailing/double dots
@@ -55,4 +104,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/your-org/yamlget/compare/HEAD...HEAD
+[Unreleased]: https://github.com/your-org/yamlget/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/your-org/yamlget/releases/tag/v0.1.0

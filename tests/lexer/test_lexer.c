@@ -13,6 +13,10 @@
  *   key    — key name for KEY_ONLY/KEY_VALUE, empty otherwise
  *   value  — scalar value for KEY_VALUE, empty otherwise
  *
+ * Embedded newlines in block scalar values are printed as the two-character
+ * sequence \n (backslash + 'n') so that each logical record occupies exactly
+ * one output line. Literal backslashes are doubled (\\).
+ *
  * Stderr is used exclusively for lexer diagnostics. Stdout is clean output
  * suitable for comparison against .expected fixture files.
  *
@@ -26,6 +30,15 @@
 
 #include <stdio.h>
 #include <string.h>
+
+static void print_escaped(const char *s)
+{
+    for (; *s; s++) {
+        if (*s == '\n')      { fputs("\\n", stdout); }
+        else if (*s == '\\') { fputs("\\\\", stdout); }
+        else                 { fputc(*s, stdout); }
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -59,13 +72,14 @@ int main(int argc, char *argv[])
             return rc;
         }
 
-        /* lineno|TYPE|indent|key|value */
-        printf("%d|%s|%d|%s|%s\n",
+        /* lineno|TYPE|indent|key|value  (value has \n and \\ escaped) */
+        printf("%d|%s|%d|%s|",
                line.lineno,
                yg_line_type_name(line.type),
                line.indent,
-               line.key,
-               line.value);
+               line.key);
+        print_escaped(line.value);
+        putchar('\n');
 
         if (line.type == YG_LINE_EOF)
             break;

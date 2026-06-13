@@ -1,0 +1,175 @@
+name: Release
+
+# Triggered when a version tag is pushed.  Creates a GitHub Release and
+# attaches pre-built binaries for each supported platform.
+#
+# Naming convention for artifacts:
+#   yamlget-linux-x86_64
+#   yamlget-macos-x86_64
+#   yamlget-macos-arm64
+#   yamlget-windows-x86_64.exe
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+permissions:
+  contents: write   # required to create the GitHub Release
+
+jobs:
+  # ── Linux x86_64 ─────────────────────────────────────────────────────────────
+  build-linux-x86_64:
+    name: Build / Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (static)
+        run: |
+          make CC=gcc \
+               CFLAGS="-std=c99 -Wall -Wextra -O2 -static -DNDEBUG"
+
+      - name: Smoke-test
+        run: |
+          ./yamlget --version
+          echo "name: ok" | ./yamlget - name
+
+      - name: Strip and rename
+        run: strip yamlget && mv yamlget yamlget-linux-x86_64
+
+      - name: Report binary size
+        run: du -sh yamlget-linux-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yamlget-linux-x86_64
+          path: yamlget-linux-x86_64
+
+  # ── macOS x86_64 (Intel) ─────────────────────────────────────────────────────
+  build-macos-x86_64:
+    name: Build / macOS x86_64
+    runs-on: macos-13           # last GitHub-hosted Intel macOS runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          make CC=clang \
+               CFLAGS="-std=c99 -Wall -Wextra -O2 -DNDEBUG"
+
+      - name: Smoke-test
+        run: |
+          ./yamlget --version
+          echo "name: ok" | ./yamlget - name
+
+      - name: Strip and rename
+        run: strip yamlget && mv yamlget yamlget-macos-x86_64
+
+      - name: Report binary size
+        run: du -sh yamlget-macos-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yamlget-macos-x86_64
+          path: yamlget-macos-x86_64
+
+  # ── macOS arm64 (Apple Silicon) ───────────────────────────────────────────────
+  build-macos-arm64:
+    name: Build / macOS arm64
+    runs-on: macos-latest       # arm64 (M-series) runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          make CC=clang \
+               CFLAGS="-std=c99 -Wall -Wextra -O2 -DNDEBUG"
+
+      - name: Smoke-test
+        run: |
+          ./yamlget --version
+          echo "name: ok" | ./yamlget - name
+
+      - name: Strip and rename
+        run: strip yamlget && mv yamlget yamlget-macos-arm64
+
+      - name: Report binary size
+        run: du -sh yamlget-macos-arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yamlget-macos-arm64
+          path: yamlget-macos-arm64
+
+  # ── Windows x86_64 (MSVC) ────────────────────────────────────────────────────
+  build-windows-x86_64:
+    name: Build / Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build
+        shell: cmd
+        run: |
+          cl /nologo /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS /DNDEBUG ^
+             /Fe:yamlget-windows-x86_64.exe /Iinclude ^
+             src\main.c src\lexer.c src\parser.c
+
+      - name: Smoke-test
+        shell: cmd
+        run: |
+          yamlget-windows-x86_64.exe --version
+          echo name: ok | yamlget-windows-x86_64.exe - name
+
+      - name: Report binary size
+        shell: pwsh
+        run: |
+          $size = (Get-Item yamlget-windows-x86_64.exe).Length
+          Write-Host "Size: $([math]::Round($size/1KB, 1)) KB"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yamlget-windows-x86_64
+          path: yamlget-windows-x86_64.exe
+
+  # ── Create GitHub Release ────────────────────────────────────────────────────
+  release:
+    name: Publish GitHub Release
+    needs:
+      - build-linux-x86_64
+      - build-macos-x86_64
+      - build-macos-arm64
+      - build-windows-x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: List artifacts
+        run: find dist/ -type f | sort
+
+      # softprops/action-gh-release creates the release and attaches the files.
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "yamlget ${{ github.ref_name }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            dist/yamlget-linux-x86_64/yamlget-linux-x86_64
+            dist/yamlget-macos-x86_64/yamlget-macos-x86_64
+            dist/yamlget-macos-arm64/yamlget-macos-arm64
+            dist/yamlget-windows-x86_64/yamlget-windows-x86_64.exe

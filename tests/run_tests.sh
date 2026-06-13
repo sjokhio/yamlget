@@ -228,6 +228,90 @@ check "ci: missing key → exit 1"                 1 ""                      "$F
 check_stderr "sequence items → exit 4"            4  "$FIXTURES/invalid.yaml" "name"
 check_stderr "sequence: descend → exit 4"         4  "$FIXTURES/invalid.yaml" "items.child"
 
+# ── block-scalars.yaml — literal and folded block scalars ────────────────────
+
+check "block: script (literal)"                  0 $'echo hello\necho world' \
+    "$FIXTURES/block-scalars.yaml" "script"
+
+check "block: multiline_literal (3 lines)"       0 $'first line\nsecond line\nthird line' \
+    "$FIXTURES/block-scalars.yaml" "multiline_literal"
+
+check "block: single_line_literal"               0 "only one line" \
+    "$FIXTURES/block-scalars.yaml" "single_line_literal"
+
+check "block: description (folded)"              0 \
+    "This is a long description that has been folded across multiple lines." \
+    "$FIXTURES/block-scalars.yaml" "description"
+
+check "block: folded_single"                     0 "just one line" \
+    "$FIXTURES/block-scalars.yaml" "folded_single"
+
+check "block: stripped (|-)"                     0 $'no trailing newline\nfrom chomping' \
+    "$FIXTURES/block-scalars.yaml" "stripped"
+
+check "block: kept (|+)"                         0 "with keep chomping" \
+    "$FIXTURES/block-scalars.yaml" "kept"
+
+check_exact "block: empty_block (|)"             0 "" \
+    "$FIXTURES/block-scalars.yaml" "empty_block"
+
+check "block: next_after_empty (put-back)"       0 "found" \
+    "$FIXTURES/block-scalars.yaml" "next_after_empty"
+
+check "block: nested.literal"                    0 $'line one\nline two' \
+    "$FIXTURES/block-scalars.yaml" "nested.literal"
+
+check "block: nested.plain after literal"        0 "simple_value" \
+    "$FIXTURES/block-scalars.yaml" "nested.plain"
+
+check "block: nested.folded"                     0 "folded nested value here" \
+    "$FIXTURES/block-scalars.yaml" "nested.folded"
+
+check "block: folded_more_indent"                0 $'preamble line\n  more indented keeps newlines\nresuming normal' \
+    "$FIXTURES/block-scalars.yaml" "folded_more_indent"
+
+check "block: first_key (literal)"               0 "block content" \
+    "$FIXTURES/block-scalars.yaml" "first_key"
+
+check "block: second_key (after block)"          0 "sibling_value" \
+    "$FIXTURES/block-scalars.yaml" "second_key"
+
+# ── edge-cases.yaml — quoted scalars, block scalars, deep nesting ─────────────
+
+check "edge: single_quoted"                      0 "hello world"   "$FIXTURES/edge-cases.yaml" "single_quoted"
+check "edge: double_quoted"                      0 "hello world"   "$FIXTURES/edge-cases.yaml" "double_quoted"
+
+check "edge: literal_block (3 lines)"            0 $'line one\nline two\nline three' \
+    "$FIXTURES/edge-cases.yaml" "literal_block"
+
+check "edge: folded_block (single line)"         0 \
+    "this is a long sentence that wraps across lines but becomes one line" \
+    "$FIXTURES/edge-cases.yaml" "folded_block"
+
+check "edge: deep nesting (a.b.c.d.e.value)"     0 "deep" \
+    "$FIXTURES/edge-cases.yaml" "a.b.c.d.e.value"
+
+# ── crlf.yaml — Windows line endings ─────────────────────────────────────────
+
+check "crlf: name"                               0 "myservice"     "$FIXTURES/crlf.yaml" "name"
+check "crlf: version"                            0 "1.4.2"         "$FIXTURES/crlf.yaml" "version"
+check "crlf: port"                               0 "8080"          "$FIXTURES/crlf.yaml" "port"
+check "crlf: enabled"                            0 "true"          "$FIXTURES/crlf.yaml" "enabled"
+check "crlf: missing key → exit 1"              1 ""              "$FIXTURES/crlf.yaml" "nonexistent"
+
+# ── large.yaml — 1001 keys; correctness under scale ──────────────────────────
+
+check "large: find first key"                    0 "value_1"       "$FIXTURES/large.yaml" "key_1"
+check "large: find middle key (500)"             0 "value_500"     "$FIXTURES/large.yaml" "key_500"
+check "large: find last numbered key (1000)"     0 "value_1000"    "$FIXTURES/large.yaml" "key_1000"
+check "large: find sentinel key at end"          0 "found_it"      "$FIXTURES/large.yaml" "final_key"
+check "large: missing key → exit 1"             1 ""              "$FIXTURES/large.yaml" "nonexistent"
+
+# ── Malformed inputs — parse errors ──────────────────────────────────────────
+
+check_stderr "malformed: tab in block body → exit 4"   4  "$FIXTURES/malformed-block.yaml" "key"
+check_stderr "malformed: tab in block body (miss) → 4" 4  "$FIXTURES/malformed-block.yaml" "next"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo "────────────────────────────────────────"

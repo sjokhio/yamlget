@@ -8,10 +8,12 @@ Thank you for your interest in contributing. `yamlget` is intentionally a small,
 
 Before contributing a new feature, ask: *does this belong in a key extractor?* Features that are out of scope will not be accepted regardless of implementation quality. When in doubt, open an issue first to discuss.
 
-**In scope for v0.1.0:**
+**In scope for v0.1.0 (shipped):**
 - Dot-notation path lookup in nested mappings
 - Scalar value output (strings, integers, booleans, floats, null)
+- Block scalars: literal (`|`) and folded (`>`) with all chomping indicators
 - stdin support
+- LF and CRLF line ending support
 - Predictable exit codes
 - Cross-platform builds (Linux, macOS, Windows)
 
@@ -43,9 +45,15 @@ Before contributing a new feature, ask: *does this belong in a key extractor?* F
    make test
    ```
 
-4. Make your changes following the [coding standards](docs/coding-standards.md).
-5. Add or update test fixtures in `tests/fixtures/` for any behaviour you change.
-6. Open a pull request against `main`.
+4. Run the sanitizer suite:
+
+   ```sh
+   make asan-test
+   ```
+
+5. Make your changes following the [coding standards](docs/coding-standards.md).
+6. Add or update test fixtures in `tests/fixtures/` for any behaviour you change.
+7. Open a pull request against `main`.
 
 ## Pull request guidelines
 
@@ -64,7 +72,8 @@ Summary:
 - `snake_case` for all identifiers
 - No dynamic memory allocation in the hot path where avoidable
 - All error paths must set a specific exit code
-- No `printf` in library functions — only in `main.c` and `cli.c`
+- No `printf` in library functions — only in `main.c`
+- All diagnostic output goes to `stderr`; stdout is reserved for extracted values
 
 ## Reporting bugs
 

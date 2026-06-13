@@ -50,15 +50,22 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
+## v0.6.0 — Man page and package managers
+
+- Man page (`docs/yamlget.1`) written and installed via `make install`
+- Package manager presence: Homebrew formula, Debian/Ubuntu package, Chocolatey
+- Shell completion: bash, zsh, fish
+
+---
+
 ## v1.0.0 — Stability milestone
 
 Signals that the interface is stable and v0.x users can upgrade without breaking changes.
 
 - All v0.x features stabilised
-- Man page complete
+- Man page complete and installed
 - Comprehensive test suite (>95% line coverage)
 - Fuzz testing (libFuzzer or AFL) integrated into CI
-- Package manager presence: Homebrew, APT PPA or Debian package, Chocolatey
 - Semantic versioning guarantee: no breaking CLI changes without a major version bump
 
 ---
