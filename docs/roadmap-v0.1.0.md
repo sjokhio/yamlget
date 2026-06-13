@@ -67,18 +67,25 @@ Encountering any unsupported construct in the **path to the requested key** resu
 - [x] `include/yamlget.h` — public header with exit code constants
 - [x] `src/main.c` — argument parsing skeleton with correct exit codes
 
-### M2 — Lexer
-- [ ] `src/lexer.c` / `include/yamlget/lexer.h`
-- [ ] Token types: `KEY`, `VALUE`, `INDENT`, `DEDENT`, `NEWLINE`, `EOF`, `ERROR`
-- [ ] Handles plain, single-quoted, and double-quoted scalars
-- [ ] Handles `|` and `>` block scalars
-- [ ] Tracks line and column numbers for error messages
-- [ ] Tests: `tests/lexer/`
+### M2 — Lexer ✅
+- [x] `src/lexer.c` / `include/yamlget/lexer.h`
+- [x] Line types: `BLANK`, `COMMENT`, `KEY_ONLY`, `KEY_VALUE`, `INVALID`, `EOF`
+- [x] Handles plain, single-quoted (`'...'`), and double-quoted (`"..."`) scalars
+- [x] Single-quote escape (`''` → `'`) and common double-quote escapes (`\"`, `\\`, `\n`, `\t`, `\r`)
+- [x] Tracks indentation depth (leading space count) per line
+- [x] Detects tab-in-indentation and reports as `INVALID` with source location
+- [x] Strips inline comments from plain scalar values
+- [x] Empty key detection; key and value length bounds checking
+- [x] `yg_indent_count()` / `yg_indent_has_tab()` utilities available to parser layer
+- [x] 9 fixture-based lexer unit tests; zero ASan/UBSan errors
+- [x] `make test` / `make test-lexer` / `make asan-test` targets
+- [ ] Block scalars (`|` and `>`) — deferred to M3 or later
+- [ ] Column tracking — deferred (line numbers are sufficient for v0.1.0 error messages)
 
 ### M3 — Parser
 - [ ] `src/parser.c` / `include/yamlget/parser.h`
-- [ ] Recursive descent over lexer output
-- [ ] Builds an in-memory tree of `yaml_node_t` (mappings and scalars only)
+- [ ] Streaming single-pass descent driven by lexer output (no AST construction)
+- [ ] Indentation-stack based nesting — walk only the path segments needed
 - [ ] Strict memory safety — verified with ASan
 - [ ] Tests: `tests/parser/`
 

@@ -1,0 +1,7 @@
+1|COMMENT|0||
+2|KEY_VALUE|0|name|myservice
+3|KEY_VALUE|0|version|2.0.0
+4|BLANK|0||
+5|COMMENT|0||
+6|KEY_VALUE|0|port|8080
+7|EOF|0||

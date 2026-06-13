@@ -1,0 +1,6 @@
+# This is a file-level comment
+name: myservice  # inline comment stripped
+version: 2.0.0
+
+# Section separator comment
+port: 8080

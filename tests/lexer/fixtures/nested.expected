@@ -1,0 +1,7 @@
+1|KEY_ONLY|0|app|
+2|KEY_VALUE|2|name|myservice
+3|KEY_VALUE|2|version|2.0.0
+4|KEY_ONLY|0|database|
+5|KEY_VALUE|2|host|localhost
+6|KEY_VALUE|2|port|5432
+7|EOF|0||

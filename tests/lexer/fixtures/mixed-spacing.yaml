@@ -1,0 +1,6 @@
+normal: value
+extra_spaces:    lots of spaces before value
+trailing_space: value
+indented_two:
+  child: nested
+no_space_after_colon:value

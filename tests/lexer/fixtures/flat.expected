@@ -1,0 +1,6 @@
+1|KEY_VALUE|0|name|myservice
+2|KEY_VALUE|0|version|1.4.2
+3|KEY_VALUE|0|port|8080
+4|KEY_VALUE|0|enabled|true
+5|KEY_VALUE|0|debug|false
+6|EOF|0||

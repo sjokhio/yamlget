@@ -25,7 +25,15 @@ $ yamlget config.yaml app.version
 
 ## Status
 
-> **Pre-release.** The v0.1.0 milestone is in active development. See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) for scope.
+> **Pre-release — M2 complete.** The streaming lexer foundation is implemented and tested. The parser (M3) and lookup (M4) milestones are next. See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) for full scope.
+
+| Milestone | Status |
+|-----------|--------|
+| M1 — Repository skeleton | ✅ Complete |
+| M2 — Streaming lexer | ✅ Complete |
+| M3 — Parser | In progress |
+| M4 — Lookup | Not started |
+| M5 — Integration & polish | Not started |
 
 ## Installation
 
@@ -49,7 +57,7 @@ make install PREFIX=/opt/local
 #### Windows (MSVC)
 
 ```bat
-cl /W4 /O2 /Fe:yamlget.exe src\main.c src\parser.c src\lookup.c
+cl /W4 /WX /O2 /D_CRT_SECURE_NO_WARNINGS /Fe:yamlget.exe /Iinclude src\main.c src\lexer.c
 ```
 
 ### Verify the build
@@ -126,11 +134,14 @@ echo "Deploying version $VERSION"
 
 ## v0.1.0 Scope
 
-- [x] Dot-notation path lookup in nested mappings
-- [x] Raw value output to stdout
-- [x] Errors to stderr
-- [x] Defined exit codes
-- [x] stdin support (`-` as filename)
+- [x] Streaming lexer: blank/comment/key-only/key-value line classification
+- [x] Plain, single-quoted, and double-quoted scalar extraction
+- [x] Indentation depth tracking; tab detection
+- [x] Errors to stderr with filename and line number; defined exit codes
+- [ ] Parser: indentation-stack descent (M3)
+- [ ] Dot-notation path lookup in nested mappings (M4)
+- [ ] Raw value output to stdout (M5)
+- [ ] stdin support (`-` as filename) (M5)
 - [ ] Array indexing — deferred to v0.2.0
 - [ ] JSON output (`--json`) — deferred
 - [ ] Shell export format (`--export`) — deferred

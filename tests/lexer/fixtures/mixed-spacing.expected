@@ -1,0 +1,7 @@
+1|KEY_VALUE|0|normal|value
+2|KEY_VALUE|0|extra_spaces|lots of spaces before value
+3|KEY_VALUE|0|trailing_space|value
+4|KEY_ONLY|0|indented_two|
+5|KEY_VALUE|2|child|nested
+6|INVALID|0||
+7|EOF|0||

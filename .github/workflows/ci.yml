@@ -6,8 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# `make test` runs the lexer unit tests (M2+).
+# `make test-all` will run full integration tests once M3 (parser) lands.
+
 jobs:
-  # ── Linux ────────────────────────────────────────────────────────────────
+  # ── Linux ─────────────────────────────────────────────────────────────────
   linux-gcc:
     name: Linux / gcc
     runs-on: ubuntu-latest
@@ -17,8 +20,8 @@ jobs:
       - name: Build
         run: make CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test
-        run: make test
+      - name: Test (lexer)
+        run: make test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
   linux-clang:
     name: Linux / clang
@@ -32,8 +35,8 @@ jobs:
       - name: Build
         run: make CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test
-        run: make test
+      - name: Test (lexer)
+        run: make test CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
   linux-gcc-asan:
     name: Linux / gcc / ASan+UBSan
@@ -42,12 +45,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build with sanitizers
-        run: make CC=gcc CFLAGS="-std=c99 -Wall -Wextra -g -fsanitize=address,undefined -O1"
+        run: make asan-test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -g -fsanitize=address,undefined -O1"
 
-      - name: Test
-        run: make test
-
-  # ── macOS ────────────────────────────────────────────────────────────────
+  # ── macOS ──────────────────────────────────────────────────────────────────
   macos-clang:
     name: macOS / clang (Xcode)
     runs-on: macos-latest
@@ -57,10 +57,10 @@ jobs:
       - name: Build
         run: make CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test
-        run: make test
+      - name: Test (lexer)
+        run: make test CC=clang CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-  # ── Windows ──────────────────────────────────────────────────────────────
+  # ── Windows ────────────────────────────────────────────────────────────────
   windows-msvc:
     name: Windows / MSVC
     runs-on: windows-latest
@@ -70,19 +70,48 @@ jobs:
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build
+      - name: Build main binary
         shell: cmd
         run: |
-          cl /nologo /W4 /WX /O2 /std:c17 /Fe:yamlget.exe /Iinclude src\main.c
+          cl /nologo /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS ^
+             /Fe:yamlget.exe /Iinclude src\main.c src\lexer.c
 
-      - name: Test
+      - name: Build lexer test binary
+        shell: cmd
+        run: |
+          cl /nologo /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS ^
+             /Fe:tests\lexer\test_lexer.exe /Iinclude ^
+             tests\lexer\test_lexer.c src\lexer.c
+
+      - name: Test (lexer)
         shell: pwsh
         run: |
-          if (Test-Path "tests\run_tests.ps1") {
-            & tests\run_tests.ps1
-          } else {
-            Write-Host "No Windows test runner yet — skipping"
+          $pass = 0; $fail = 0
+          Get-ChildItem tests\lexer\fixtures\*.expected | ForEach-Object {
+            $base     = $_.FullName -replace '\.expected$', ''
+            $yamlFile = "$base.yaml"
+            $name     = [System.IO.Path]::GetFileNameWithoutExtension($base)
+            if (-not (Test-Path $yamlFile)) {
+              Write-Host "WARN  $name : no matching .yaml"
+              return
+            }
+            $actual   = & .\tests\lexer\test_lexer.exe $yamlFile 2>$null
+            $expected = Get-Content $_.FullName -Raw
+            # Normalise line endings for comparison
+            $actual   = $actual -join "`n"
+            $expected = $expected.TrimEnd("`r`n", "`n")
+            if ($actual -eq $expected) {
+              Write-Host "PASS  $name"
+              $pass++
+            } else {
+              Write-Host "FAIL  $name"
+              Write-Host "  Expected: $expected"
+              Write-Host "  Actual:   $actual"
+              $fail++
+            }
           }
+          Write-Host "Results: $pass passed, $fail failed"
+          if ($fail -gt 0) { exit 1 }
 
   windows-mingw:
     name: Windows / MinGW (gcc)
@@ -94,6 +123,6 @@ jobs:
         shell: bash
         run: make CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"
 
-      - name: Test
+      - name: Test (lexer)
         shell: bash
-        run: make test
+        run: make test CC=gcc CFLAGS="-std=c99 -Wall -Wextra -Wpedantic -O2 -Werror"

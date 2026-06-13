@@ -1,0 +1,7 @@
+single_quoted: 'hello world'
+double_quoted: "hello world"
+quoted_colon: "host:port"
+single_escaped: 'it''s fine'
+quoted_hash: "value # not a comment"
+double_empty: ""
+single_empty: ''

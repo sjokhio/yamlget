@@ -1,6 +1,9 @@
 # Build outputs
 yamlget
 yamlget.exe
+tests/lexer/test_lexer
+tests/lexer/test_lexer.exe
+*.dSYM/
 *.o
 *.obj
 *.a

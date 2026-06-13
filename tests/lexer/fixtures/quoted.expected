@@ -1,0 +1,8 @@
+1|KEY_VALUE|0|single_quoted|hello world
+2|KEY_VALUE|0|double_quoted|hello world
+3|KEY_VALUE|0|quoted_colon|host:port
+4|KEY_VALUE|0|single_escaped|it's fine
+5|KEY_VALUE|0|quoted_hash|value # not a comment
+6|KEY_VALUE|0|double_empty|
+7|KEY_VALUE|0|single_empty|
+8|EOF|0||

@@ -1,0 +1,5 @@
+1|KEY_ONLY|0|key_without_value|
+2|KEY_VALUE|0|nothing|~
+3|KEY_VALUE|0|empty_string|
+4|KEY_VALUE|0|null_value|null
+5|EOF|0||
