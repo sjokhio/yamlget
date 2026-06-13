@@ -98,7 +98,7 @@ Push the release branch (not the tag yet) to GitHub and verify:
 git tag -a v0.1.0 -m "Release v0.1.0"
 # or: git tag -s v0.1.0 -m "Release v0.1.0"
 
-# Push the tag — this triggers the release workflow
+# Push the tag - this triggers the release workflow
 git push origin v0.1.0
 ```
 

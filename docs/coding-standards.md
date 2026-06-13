@@ -35,7 +35,7 @@ Every `.c` file must include its own `.h` counterpart first (where one exists), 
 | Types (`typedef struct`) | `snake_case_t` | `yaml_token_t` |
 | Enum values | `UPPER_SNAKE_CASE` | `YAML_TOKEN_SCALAR` |
 | Macros / constants | `UPPER_SNAKE_CASE` | `YAMLGET_VERSION` |
-| File-local (`static`) | `snake_case` — no prefix | `skip_whitespace` |
+| File-local (`static`) | `snake_case` (no prefix) | `skip_whitespace` |
 | Public API | Prefixed with `yamlget_` | `yamlget_lookup` |
 
 Do not use single-letter names except for loop indices (`i`, `j`, `k`) and trivial temporaries.
@@ -44,7 +44,7 @@ Do not use single-letter names except for loop indices (`i`, `j`, `k`) and trivi
 
 - **Indent:** 4 spaces. No tabs.
 - **Line length:** 100 characters maximum. Wrap with a trailing `\` or restructure.
-- **Braces:** K&R style — opening brace on the same line.
+- **Braces:** K&R style (opening brace on the same line).
 
 ```c
 if (condition) {
@@ -59,9 +59,9 @@ if (condition) {
 
 ## Error handling
 
-- Functions that can fail return an `int` error code or a typed enum. Never return `-1` — use a named constant.
+- Functions that can fail return an `int` error code or a typed enum. Never return `-1`; use a named constant.
 - The caller is always responsible for checking the return value. Do not silently swallow errors.
-- All error messages go to `stderr`. Use `fprintf(stderr, ...)` — never `printf` for errors.
+- All error messages go to `stderr`. Use `fprintf(stderr, ...)`, never `printf` for errors.
 - Error messages must be lowercase, end without a period, and include the program name:
 
   ```
@@ -75,14 +75,14 @@ if (condition) {
 - Every `malloc` must have a paired `free` on every exit path.
 - Do not use `realloc` without checking the return value.
 - No memory leaks on any exit path, including error paths. Verify with ASan (`make asan`).
-- Do not use `alloca` — it is not portable and its failure is silent.
+- Do not use `alloca`: it is not portable and its failure is silent.
 
 ## Input handling
 
 - Never assume input is null-terminated unless you control the source.
 - Always validate buffer bounds before writing. Use `snprintf`, not `sprintf`.
 - Never use `gets`. Use `fgets` with an explicit size.
-- Treat all input — file paths, YAML content, key paths — as untrusted.
+- Treat all input (file paths, YAML content, key paths) as untrusted.
 
 ## Comments
 
@@ -105,7 +105,7 @@ Use `/* */` for all comments (C99 block style). `//` line comments are permitted
 - Do not assume `int` or `long` width.
 - Do not use POSIX-only functions in the parser or lookup core. Isolate POSIX calls (e.g., `fileno`, `isatty`) in a platform shim.
 - `size_t` for lengths and indices; `ptrdiff_t` for pointer differences.
-- Avoid variable-length arrays (VLAs) — MSVC does not support them.
+- Avoid variable-length arrays (VLAs): MSVC does not support them.
 
 ## Exit codes
 

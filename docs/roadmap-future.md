@@ -6,7 +6,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.2.0 — Sequences
+## v0.2.0: Sequences
 
 **Theme:** Make `yamlget` useful for YAML files that contain lists.
 
@@ -18,7 +18,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.3.0 — Output formats
+## v0.3.0: Output formats
 
 **Theme:** Make output consumable by more tooling without a post-processing step.
 
@@ -29,7 +29,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.4.0 — Anchors and aliases
+## v0.4.0: Anchors and aliases
 
 **Theme:** Handle the most common advanced YAML features found in real configuration files.
 
@@ -40,7 +40,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.5.0 — Multiple inputs and globbing
+## v0.5.0: Multiple inputs and globbing
 
 **Theme:** Reduce boilerplate in shell scripts that process many files.
 
@@ -50,7 +50,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.6.0 — Man page and package managers
+## v0.6.0: Man page and package managers
 
 - Man page (`docs/yamlget.1`) written and installed via `make install`
 - Package manager presence: Homebrew formula, Debian/Ubuntu package, Chocolatey
@@ -58,7 +58,7 @@ Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v1.0.0 — Stability milestone
+## v1.0.0: Stability milestone
 
 Signals that the interface is stable and v0.x users can upgrade without breaking changes.
 
@@ -70,16 +70,16 @@ Signals that the interface is stable and v0.x users can upgrade without breaking
 
 ---
 
-## Deferred indefinitely
+## Explicitly Out of Scope
 
-These have been discussed and explicitly deferred. Reopen the conversation with a concrete use case before submitting a PR.
+These have been discussed and explicitly excluded. Reopen the conversation with a concrete use case before submitting a PR.
 
-| Feature | Reason deferred |
-|---------|----------------|
-| YAML editing / rewriting | Out of scope — use `yq` or a language library |
-| Schema validation | Out of scope — not a key extractor concern |
+| Feature | Reason |
+|---------|--------|
+| YAML editing / rewriting | Out of scope (use `yq` or a language library) |
+| Schema validation | Out of scope (not a key extractor concern) |
 | Multi-document stream queries | Complex; defer until demand is clear |
-| YAML → TOML / JSON conversion | Out of scope |
+| YAML to TOML / JSON conversion | Out of scope |
 | Recursive / wildcard path matching | Adds significant complexity; assess after v1.0 |
 | Plugin system | Premature abstraction |
 | Embedded library mode (`libyamlget`) | Possible post-v1.0 if demand warrants |

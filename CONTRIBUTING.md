@@ -23,7 +23,7 @@ Before contributing a new feature, ask: *does this belong in a key extractor?* F
 - Multi-document stream processing
 - Templating or expression evaluation
 
-**Deferred to later milestones:**
+**Planned for future releases:**
 - Array indexing
 - JSON output format
 - Shell export format
@@ -72,7 +72,7 @@ Summary:
 - `snake_case` for all identifiers
 - No dynamic memory allocation in the hot path where avoidable
 - All error paths must set a specific exit code
-- No `printf` in library functions — only in `main.c`
+- No `printf` in library functions (only in `main.c`)
 - All diagnostic output goes to `stderr`; stdout is reserved for extracted values
 
 ## Reporting bugs
