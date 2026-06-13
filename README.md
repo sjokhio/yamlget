@@ -1,12 +1,21 @@
+<div align="center">
+
 # yamlget
 
-[![CI](https://github.com/your-org/yamlget/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/yamlget/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/your-org/yamlget)](https://github.com/your-org/yamlget/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+**Dependency-free YAML key extractor — pure C, zero allocation, instant startup.**
 
-A dependency-free YAML key extractor written in pure C.
+[![CI](https://github.com/sjokhio/yamlget/actions/workflows/ci.yml/badge.svg)](https://github.com/sjokhio/yamlget/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/sjokhio/yamlget?color=blue)](https://github.com/sjokhio/yamlget/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Language: C99](https://img.shields.io/badge/language-C99-blue.svg)](#build-from-source)
+[![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey.svg)](#installation)
 
-`yamlget` reads a YAML file and prints the value at a dot-notation path to stdout. Nothing more. It is designed for CI/CD pipelines, shell scripts, containers, and any environment where pulling in Python, Node, or `yq` is too heavy.
+</div>
+
+---
+
+`yamlget` reads a YAML file and prints the value at a dot-notation path to stdout.  
+Nothing more. Designed for CI/CD pipelines, shell scripts, and containers where pulling in Python, Node, or `yq` is too heavy.
 
 ```sh
 $ yamlget config.yaml database.host
@@ -18,34 +27,26 @@ $ yamlget Chart.yaml appVersion
 $ VERSION=$(yamlget config.yaml app.version)
 ```
 
+---
+
 ## Why yamlget?
 
 | Tool | Dependency | Typical startup | Purpose |
-|------|------------|-----------------|---------|
-| `yq` | Go runtime / binary | ~5–20 ms | General YAML processor |
+|------|:----------:|:---------------:|---------|
+| `yq` | Go binary | ~5–20 ms | General YAML processor |
 | `python -c` | Python interpreter | ~20–50 ms | General scripting |
 | `node -e` | Node.js runtime | ~50–100 ms | General scripting |
 | **yamlget** | **None** | **~1–2 ms** | **Key extraction only** |
 
 `yamlget` does **one thing**: extract a value by path. It does not edit, merge, transform, or validate YAML. That constraint is a feature — it keeps the binary tiny and the behaviour predictable.
 
-## Status
-
-v0.1.0 — first stable release.
-
-| Milestone | Status |
-|-----------|--------|
-| M1 — Repository skeleton | ✅ Complete |
-| M2 — Streaming lexer | ✅ Complete |
-| M3 — Streaming path resolution | ✅ Complete |
-| M4 — YAML compatibility hardening | ✅ Complete |
-| M5 — Polish & release | ✅ Complete |
+---
 
 ## Installation
 
-### Download a pre-built binary
+### Pre-built binaries
 
-Pre-built binaries are attached to every [GitHub release](https://github.com/your-org/yamlget/releases/latest).
+Download from the [latest release](https://github.com/sjokhio/yamlget/releases/latest):
 
 | Platform | File |
 |----------|------|
@@ -55,19 +56,19 @@ Pre-built binaries are attached to every [GitHub release](https://github.com/you
 | Windows x86_64 | `yamlget-windows-x86_64.exe` |
 
 ```sh
-# Linux example
+# Linux / macOS
 curl -Lo yamlget \
-  https://github.com/your-org/yamlget/releases/latest/download/yamlget-linux-x86_64
+  https://github.com/sjokhio/yamlget/releases/latest/download/yamlget-linux-x86_64
 chmod +x yamlget
 sudo mv yamlget /usr/local/bin/
 ```
 
 ### Build from source
 
-Requirements: a C99-compatible compiler (`gcc`, `clang`, or MSVC). No other dependencies.
+Requirements: any C99 compiler (`gcc`, `clang`, or MSVC). No other dependencies.
 
 ```sh
-git clone https://github.com/your-org/yamlget.git
+git clone https://github.com/sjokhio/yamlget.git
 cd yamlget
 make
 sudo make install        # installs to /usr/local/bin by default
@@ -79,30 +80,33 @@ Override the install prefix:
 make install PREFIX=/opt/local
 ```
 
-#### Windows (MSVC)
+#### Windows (MSVC Developer Command Prompt)
 
 ```bat
 cl /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS /Fe:yamlget.exe /Iinclude ^
    src\main.c src\lexer.c src\parser.c
 ```
 
-### Verify the installation
+### Verify
 
 ```sh
-yamlget --version   # prints 0.1.0
+yamlget --version   # prints: 0.1.0
 yamlget --help
 ```
+
+---
 
 ## Usage
 
 ```
 yamlget <file> <path>
+yamlget - <path>         # read from stdin
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `<file>` | Path to the YAML file. Use `-` to read from stdin. |
-| `<path>` | Dot-notation key path, e.g. `server.port` or `database.host`. |
+| `<file>` | Path to a YAML file, or `-` to read from stdin. |
+| `<path>` | Dot-notation key path — e.g. `server.port` or `database.host`. |
 
 ### Examples
 
@@ -130,7 +134,7 @@ yamlget config.yaml database.port     # 5432
 yamlget config.yaml deploy.image.tag  # latest
 ```
 
-### Reading from stdin
+### Stdin
 
 ```sh
 cat config.yaml | yamlget - app.name
@@ -139,7 +143,7 @@ kubectl get cm my-config -o yaml | yamlget - data.app_port
 
 ### Block scalars
 
-`yamlget` handles both literal (`|`) and folded (`>`) block scalars:
+`yamlget` handles both literal (`|`) and folded (`>`) block scalars, including all chomping indicators:
 
 ```yaml
 script: |
@@ -149,15 +153,21 @@ script: |
 description: >
   A long description that is wrapped
   across multiple lines for readability.
+
+stripped: |-
+  no trailing newline
+
+kept: |+
+  trailing newlines preserved
 ```
 
 ```sh
-yamlget config.yaml script
-# echo "Building..."
-# go build ./...
+$ yamlget config.yaml script
+echo "Building..."
+go build ./...
 
-yamlget config.yaml description
-# A long description that is wrapped across multiple lines for readability.
+$ yamlget config.yaml description
+A long description that is wrapped across multiple lines for readability.
 ```
 
 ### Use in CI/CD
@@ -173,7 +183,7 @@ kubectl scale deployment myservice --replicas="${REPLICAS}"
 ```
 
 ```yaml
-# GitHub Actions
+# GitHub Actions step
 - name: Read app version
   run: echo "VERSION=$(yamlget config.yaml app.version)" >> $GITHUB_ENV
 ```
@@ -181,7 +191,7 @@ kubectl scale deployment myservice --replicas="${REPLICAS}"
 ### Exit codes
 
 | Code | Meaning |
-|------|---------|
+|:----:|---------|
 | `0` | Success — value printed to stdout |
 | `1` | Key not found |
 | `2` | Invalid arguments (wrong count, malformed path) |
@@ -190,11 +200,13 @@ kubectl scale deployment myservice --replicas="${REPLICAS}"
 | `5` | Internal error (always a bug — please report) |
 
 ```sh
-# Pattern: test before use
+# Check before use
 if yamlget config.yaml feature.enabled >/dev/null 2>&1; then
     ENABLED=$(yamlget config.yaml feature.enabled)
 fi
 ```
+
+---
 
 ## Supported YAML subset
 
@@ -202,7 +214,7 @@ fi
 
 ### Supported
 
-- Block mappings, arbitrarily nested, any indentation width (spaces only — no tabs)
+- Block mappings — arbitrarily nested, any indentation width (spaces only)
 - Scalar types:
   - Plain: `key: value`
   - Single-quoted: `key: 'hello world'`
@@ -212,76 +224,84 @@ fi
 - All block scalar chomping indicators: `|` (clip), `|-` (strip), `|+` (keep)
 - Inline comment stripping (`key: value  # this is ignored`)
 - Empty values (`key:` or `key: ""`) — prints an empty line, exits 0
-- stdin via `-` filename
+- Stdin via `-` filename
 - LF (`\n`) and CRLF (`\r\n`) line endings
 
-### Not supported (v0.1.0)
+### Not supported (exits 4)
 
-- Sequences / arrays (`- item`) — exits 4 if encountered on the lookup path
-- Multi-document streams (`---`) — treated as a parse error
-- Tab-indented files — exits 4
-- Anchors and aliases (`&anchor`, `*alias`) — keys containing these characters
-  are matched literally if on the path, otherwise silently ignored
+- Sequences / arrays (`- item`)
+- Multi-document streams (`---`)
+- Tab-indented files
+- Anchors and aliases (`&anchor`, `*alias`)
 
 ### Duplicate keys
 
-The first occurrence wins. The streaming parser stops as soon as the full path
-is matched, so later duplicate keys are never reached.
+First occurrence wins. The streaming parser stops at the first full path match.
+
+---
 
 ## Benchmarks
 
-Measured on macOS (Apple Silicon) extracting a 3-level nested key from a
-realistic 80-key CI/CD configuration file (`bench/fixture.yaml`).
-Timings represent full process startup + file parse + output per invocation —
-the cost a shell script pays on each call.
+Measured on macOS (Apple Silicon) extracting a 3-level nested key from an 80-key CI/CD config.  
+Timings include full process startup + file parse + output — what a shell script pays per call.
 
 | Tool | ms / invocation | vs yamlget |
-|------|-----------------|------------|
-| **yamlget 0.1.0** | **~1.5 ms** | 1× (baseline) |
+|------|:---------------:|:----------:|
+| **yamlget 0.1.0** | **~1.5 ms** | 1× baseline |
 | python3 + PyYAML | ~24 ms | ~16× slower |
 | python3 + ruamel.yaml | ~30 ms (est.) | ~20× slower |
 | yq (Go) | ~5–15 ms (est.) | ~3–10× slower |
 
-> Numbers are indicative. Process startup dominates for small files. Run
-> `make bench` to measure on your own hardware. For scripts that call
-> `yamlget` hundreds of times, the startup cost compounds — this is where
-> the gap vs. Python matters most.
-
-To run the benchmark locally:
+> Numbers are indicative. Process startup dominates for small files. Run `make bench` to measure on your own hardware.
 
 ```sh
-make bench              # 1000 iterations
-make bench BENCH_N=500  # 500 iterations
+make bench              # 1000 iterations (default)
+make bench BENCH_N=200  # custom iteration count
 ```
 
-## v0.1.0 Scope
+---
 
-- [x] Streaming lexer: blank/comment/key-only/key-value line classification
+## Status
+
+`v0.1.0` — first stable release.
+
+| Milestone | Status |
+|-----------|:------:|
+| M1 — Repository skeleton | ✅ |
+| M2 — Streaming lexer | ✅ |
+| M3 — Streaming path resolution | ✅ |
+| M4 — YAML compatibility hardening | ✅ |
+| M5 — Polish & release | ✅ |
+
+**v0.1.0 feature set:**
+
+- [x] Streaming lexer: blank / comment / key-only / key-value line classification
 - [x] Plain, single-quoted, and double-quoted scalar extraction
 - [x] Literal block scalars (`|`) and folded block scalars (`>`)
 - [x] All chomping indicators (`-`, `+`)
-- [x] Indentation depth tracking via pop-based stack (no AST)
+- [x] Indentation depth tracking via pop-based stack (no AST, no dynamic allocation)
 - [x] Dot-notation path lookup with sibling-branch isolation
 - [x] Exact key matching — no prefix or suffix bleed
-- [x] Raw value output to stdout; all diagnostics to stderr (filename + line)
-- [x] stdin support via `-` filename
+- [x] Raw value output to stdout; all diagnostics to stderr (filename + line number)
+- [x] stdin support via `-`
 - [x] LF and CRLF line ending support
 - [x] 112 tests (10 lexer unit + 102 integration), zero ASan/UBSan errors
-- [x] Benchmark suite (`make bench`) comparing yamlget vs python+PyYAML
 - [x] Pre-built binaries for Linux x86_64, macOS x86_64, macOS arm64, Windows x86_64
-- [ ] Array / sequence indexing — deferred to v0.2.0
+- [ ] Array indexing — deferred to v0.2.0
 - [ ] JSON output (`--json`) — deferred
 - [ ] Shell export format (`--export`) — deferred
 
 See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) and [docs/roadmap-future.md](docs/roadmap-future.md).
 
+---
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). All contributions are welcome.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions are welcome.
 
-Key constraint: `yamlget` must remain a **dependency-free pure-C binary**. No new
-library dependencies. No new runtime requirements. When in doubt, open an issue
-before writing code.
+**Key constraint:** `yamlget` must remain a dependency-free pure-C binary. No new library dependencies, no new runtime requirements. Open an issue before writing code if you're unsure whether a feature fits.
+
+---
 
 ## License
 

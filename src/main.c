@@ -16,6 +16,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+# include <fcntl.h>
+# include <io.h>
+#endif
+
 #define PROG "yamlget"
 
 static void print_usage(FILE *out)
@@ -59,12 +64,17 @@ static void print_usage(FILE *out)
         "  tab-indented files.\n"
         "\n"
         "Version: " YAMLGET_VERSION_STRING
-        "  <https://github.com/your-org/yamlget>\n"
+        "  <https://github.com/sjokhio/yamlget>\n"
     );
 }
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+    /* Prevent CRT text-mode translation of \n → \r\n on stdout. */
+    _setmode(_fileno(stdout), _O_BINARY);
+#endif
+
     if (argc == 2) {
         if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0) {
             printf(YAMLGET_VERSION_STRING "\n");

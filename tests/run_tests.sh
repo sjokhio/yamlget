@@ -9,6 +9,10 @@
 set -euo pipefail
 
 BINARY="${1:-./yamlget}"
+# MinGW/MSYS2 on Windows: gcc produces yamlget.exe; find it when the bare name is absent.
+if [ ! -x "$BINARY" ] && [ -x "${BINARY}.exe" ]; then
+    BINARY="${BINARY}.exe"
+fi
 FIXTURES="tests/fixtures"
 PASS=0
 FAIL=0

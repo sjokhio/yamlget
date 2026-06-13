@@ -1,0 +1,17 @@
+# Force LF line endings in the working tree for all text files.
+# This prevents git from converting LF → CRLF on Windows (core.autocrlf=true
+# is the default on Windows and GitHub Actions windows-latest runners).
+* text=auto eol=lf
+
+# Compiled artifacts — treat as binary so git never touches their bytes.
+*.exe binary
+*.o   binary
+*.obj binary
+*.a   binary
+*.lib binary
+*.pdb binary
+
+# This fixture MUST have CRLF line endings — it tests that yamlget handles
+# Windows-style line endings. Force CRLF on every platform so the test is
+# meaningful regardless of OS.
+tests/fixtures/crlf.yaml eol=crlf

@@ -98,9 +98,8 @@ jobs:
               return
             }
             $actual   = & .\tests\lexer\test_lexer.exe $yamlFile 2>$null
-            $expected = Get-Content $_.FullName -Raw
             $actual   = ($actual -join "`n").TrimEnd()
-            $expected = $expected.TrimEnd("`r", "`n")
+            $expected = ((Get-Content $_.FullName) -join "`n").TrimEnd()
             if ($actual -eq $expected) {
               Write-Host "PASS  $name"; $pass++
             } else {

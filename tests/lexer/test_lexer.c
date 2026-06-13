@@ -31,6 +31,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef _WIN32
+# include <fcntl.h>
+# include <io.h>
+#endif
+
 static void print_escaped(const char *s)
 {
     for (; *s; s++) {
@@ -42,6 +47,10 @@ static void print_escaped(const char *s)
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+    _setmode(_fileno(stdout), _O_BINARY);
+#endif
+
     FILE       *f;
     const char *source;
 

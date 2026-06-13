@@ -11,6 +11,10 @@
 set -euo pipefail
 
 BINARY="${1:-./tests/lexer/test_lexer}"
+# MinGW/MSYS2 on Windows: gcc produces test_lexer.exe; find it when the bare name is absent.
+if [ ! -x "$BINARY" ] && [ -x "${BINARY}.exe" ]; then
+    BINARY="${BINARY}.exe"
+fi
 FIXTURES="tests/lexer/fixtures"
 PASS=0
 FAIL=0
