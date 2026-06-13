@@ -120,8 +120,8 @@ jobs:
           $fx  = "tests\fixtures"
 
           function Check {
-            param($desc, $expectExit, $expectOut, [string[]]$args)
-            $actual = & $bin @args 2>$null
+            param($desc, $expectExit, $expectOut, [string[]]$cmdArgs)
+            $actual = & $bin @cmdArgs 2>$null
             $code   = $LASTEXITCODE
             if ($code -ne $expectExit) {
               Write-Host "FAIL  $desc (exit $code, want $expectExit)"
