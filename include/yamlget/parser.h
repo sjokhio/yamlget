@@ -37,16 +37,43 @@
 #define YG_PATH_MAX_DEPTH 32
 
 /*
+ * yg_path_seg_t — one segment of a parsed dot-notation path.
+ *
+ * A segment is the key name between two dots, optionally followed by a
+ * single bracket index: key or key[N].
+ *
+ * Examples:
+ *   "name"          -> key="name",    has_index=0, index=0
+ *   "items[0]"      -> key="items",   has_index=1, index=0
+ *   "steps[12]"     -> key="steps",   has_index=1, index=12
+ */
+typedef struct {
+    char key[YG_KEY_MAX]; /* null-terminated key name                    */
+    int  has_index;       /* 1 if a bracket index was given, 0 otherwise */
+    int  index;           /* the index value when has_index == 1         */
+} yg_path_seg_t;
+
+/*
  * yg_path_split — split a dot-notation path into segments.
  *
- * Writes up to `max` segments into `segs[0..max-1]`. Each segment is a
- * null-terminated string at most YG_KEY_MAX-1 bytes long.
+ * Writes up to `max` segments into `segs[0..max-1]`.
+ *
+ * Each segment may optionally carry a single bracket index [N] where N is
+ * a non-negative decimal integer without leading zeros (except "0" itself).
  *
  * Returns the number of segments on success (>= 1).
- * Returns -1 if the path is empty, has an empty segment (leading, trailing,
- * or consecutive dots), or a segment that exceeds YG_KEY_MAX-1 bytes.
+ * Returns -1 on any parse error:
+ *   - empty path or empty segment (leading/trailing/consecutive dots)
+ *   - segment key exceeds YG_KEY_MAX-1 bytes
+ *   - empty brackets: key[]
+ *   - negative index: key[-1]
+ *   - non-decimal content: key[abc], key[*]
+ *   - leading zeros on multi-digit index: key[01]
+ *   - unclosed bracket: key[0
+ *   - content after closing bracket: key[0][1], key[0]x
+ *   - integer overflow (index > INT_MAX)
  */
-int yg_path_split(const char *path, char segs[][YG_KEY_MAX], int max);
+int yg_path_split(const char *path, yg_path_seg_t *segs, int max);
 
 /*
  * yg_stream_lookup — resolve a dot-path against a YAML stream.
@@ -66,6 +93,6 @@ int yg_path_split(const char *path, char segs[][YG_KEY_MAX], int max);
  *   YAMLGET_EXIT_INTERNAL    — nesting depth exceeded YG_PARSER_STACK_MAX
  */
 int yg_stream_lookup(FILE *stream, const char *source,
-                     char segs[][YG_KEY_MAX], int seg_count);
+                     yg_path_seg_t *segs, int seg_count);
 
 #endif /* YAMLGET_PARSER_H */

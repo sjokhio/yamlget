@@ -4,7 +4,7 @@
  * See include/yamlget/parser.h for design notes and the public API.
  *
  * Algorithm overview
- * ──────────────────
+ * ------------------
  * We maintain a small stack of (indent, matched) frames. Each frame records
  * the indentation of a mapping key we have entered and whether that key was
  * on our target path.
@@ -19,7 +19,7 @@
  *      If the top frame is "unmatched" (we descended into a sibling branch)
  *      the current line is inside that sibling and must be skipped.
  *
- *   3. If eligible and the key equals path[match_depth]:
+ *   3. If eligible and the key equals path[match_depth].key:
  *        - Increment match_depth.
  *        - If match_depth == seg_count we found the target: print and exit.
  *        - Otherwise push a "matched" frame and continue.
@@ -35,6 +35,7 @@
 #include "yamlget/lexer.h"
 #include "yamlget.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -49,27 +50,84 @@ typedef struct {
 
 /* ── Path splitting ───────────────────────────────────────────────────────── */
 
-int yg_path_split(const char *path, char segs[][YG_KEY_MAX], int max)
+int yg_path_split(const char *path, yg_path_seg_t *segs, int max)
 {
     if (!path || path[0] == '\0') return -1;
 
-    int   n = 0;
+    int         n = 0;
     const char *p = path;
 
     while (*p && n < max) {
-        const char *dot = strchr(p, '.');
-        size_t      len = dot ? (size_t)(dot - p) : strlen(p);
+        /* Locate the end of this dot-segment. */
+        const char *dot     = strchr(p, '.');
+        size_t      seg_len = dot ? (size_t)(dot - p) : strlen(p);
 
-        if (len == 0 || len >= (size_t)YG_KEY_MAX)
-            return -1; /* empty segment or segment too long */
+        if (seg_len == 0) return -1; /* empty segment (leading/consecutive dot) */
 
-        memcpy(segs[n], p, len);
-        segs[n][len] = '\0';
+        /* Find the first '[' within this segment. */
+        const char *bracket = NULL;
+        for (size_t i = 0; i < seg_len; i++) {
+            if (p[i] == '[') { bracket = p + i; break; }
+        }
+
+        /* ── Extract the key part ──────────────────────────────────────── */
+
+        size_t key_len = bracket ? (size_t)(bracket - p) : seg_len;
+
+        if (key_len == 0)              return -1; /* e.g. "[0]" with no key */
+        if (key_len >= (size_t)YG_KEY_MAX) return -1; /* key too long */
+
+        memcpy(segs[n].key, p, key_len);
+        segs[n].key[key_len] = '\0';
+
+        /* ── Parse optional bracket index ─────────────────────────────── */
+
+        if (bracket) {
+            const char *idx_start = bracket + 1;       /* first char after '[' */
+            size_t      remaining = seg_len - key_len - 1; /* chars after '[' */
+
+            /* Find the closing ']' within the segment bounds. */
+            const char *close = NULL;
+            for (size_t i = 0; i < remaining; i++) {
+                if (idx_start[i] == ']') { close = idx_start + i; break; }
+            }
+
+            if (!close) return -1; /* no closing ']' */
+
+            /* Nothing may follow ']' within this segment. */
+            if ((size_t)(close - p) + 1 != seg_len) return -1;
+
+            /* The integer string between '[' and ']'. */
+            size_t idx_len = (size_t)(close - idx_start);
+            if (idx_len == 0) return -1; /* empty [] */
+
+            /* All characters must be decimal digits (rejects '-', '*', etc.). */
+            for (size_t i = 0; i < idx_len; i++) {
+                if (idx_start[i] < '0' || idx_start[i] > '9') return -1;
+            }
+
+            /* Reject leading zeros on multi-digit numbers (e.g. [01]). */
+            if (idx_len > 1 && idx_start[0] == '0') return -1;
+
+            /* Parse to int with overflow detection. */
+            int idx = 0;
+            for (size_t i = 0; i < idx_len; i++) {
+                int d = idx_start[i] - '0';
+                if (idx > (INT_MAX - d) / 10) return -1; /* would overflow */
+                idx = idx * 10 + d;
+            }
+
+            segs[n].has_index = 1;
+            segs[n].index     = idx;
+        } else {
+            segs[n].has_index = 0;
+            segs[n].index     = 0;
+        }
+
         n++;
 
         if (!dot) break;
         p = dot + 1;
-
         if (*p == '\0') return -1; /* trailing dot */
     }
 
@@ -79,7 +137,7 @@ int yg_path_split(const char *path, char segs[][YG_KEY_MAX], int max)
 /* ── Streaming lookup ─────────────────────────────────────────────────────── */
 
 int yg_stream_lookup(FILE *stream, const char *source,
-                     char segs[][YG_KEY_MAX], int seg_count)
+                     yg_path_seg_t *segs, int seg_count)
 {
     yg_lexer_t lex;
     yg_line_t  line;
@@ -132,7 +190,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
 
         if (eligible &&
             match_depth < seg_count &&
-            strcmp(line.key, segs[match_depth]) == 0) {
+            strcmp(line.key, segs[match_depth].key) == 0) {
 
             /* ── Step 3: key matches the next path segment ─────────────── */
             match_depth++;
@@ -140,8 +198,8 @@ int yg_stream_lookup(FILE *stream, const char *source,
             if (match_depth == seg_count) {
                 /*
                  * Full path matched.
-                 * KEY_VALUE → print the scalar.
-                 * KEY_ONLY  → the value is empty; print an empty line so
+                 * KEY_VALUE -> print the scalar.
+                 * KEY_ONLY  -> the value is empty; print an empty line so
                  *             the exit code (0 = found) is unambiguous.
                  */
                 if (line.type == YG_LINE_KEY_VALUE) {

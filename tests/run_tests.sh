@@ -316,6 +316,30 @@ check "large: missing key → exit 1"             1 ""              "$FIXTURES/l
 check_stderr "malformed: tab in block body → exit 4"   4  "$FIXTURES/malformed-block.yaml" "key"
 check_stderr "malformed: tab in block body (miss) → 4" 4  "$FIXTURES/malformed-block.yaml" "next"
 
+# ── Path syntax: bracket index validation (exit 2) ───────────────────────────
+# These tests exercise yg_path_split() rejection logic. The YAML file
+# argument is irrelevant — path validation happens before file open.
+
+check_stderr "path: empty brackets key[]"           2  "$FIXTURES/simple.yaml" "key[]"
+check_stderr "path: negative index key[-1]"         2  "$FIXTURES/simple.yaml" "key[-1]"
+check_stderr "path: alpha index key[abc]"           2  "$FIXTURES/simple.yaml" "key[abc]"
+check_stderr "path: wildcard key[*]"                2  "$FIXTURES/simple.yaml" "key[*]"
+check_stderr "path: nested brackets key[0][1]"      2  "$FIXTURES/simple.yaml" "key[0][1]"
+check_stderr "path: unclosed bracket key[0"         2  "$FIXTURES/simple.yaml" "key[0"
+check_stderr "path: leading zero key[01]"           2  "$FIXTURES/simple.yaml" "key[01]"
+check_stderr "path: no key before bracket [0]"      2  "$FIXTURES/simple.yaml" "[0]"
+check_stderr "path: bracket in middle segment a.[0].b" 2 "$FIXTURES/simple.yaml" "a.[0].b"
+check_stderr "path: trailing dot after bracket a[0]."  2 "$FIXTURES/simple.yaml" "a[0]."
+
+# Valid bracket syntax parses successfully; lookup result depends on content.
+# These confirm that syntactically valid bracket paths reach the lookup stage
+# and never exit 2 from path syntax rejection.
+# (Index semantics are not yet enforced; the parser matches on key name only.)
+check_stderr "path: valid key[0] parses OK (exits 0, key found)" \
+                                                    0  "$FIXTURES/simple.yaml" "name[0]"
+check_stderr "path: valid key[0] parses OK (exits 1, key missing)" \
+                                                    1  "$FIXTURES/simple.yaml" "nonexistent[0]"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo "────────────────────────────────────────"

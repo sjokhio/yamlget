@@ -102,12 +102,13 @@ int main(int argc, char *argv[])
 
     /* ── Split the dot-notation path ──────────────────────────────────────── */
 
-    char segs[YG_PATH_MAX_DEPTH][YG_KEY_MAX];
-    int  seg_count = yg_path_split(keypath, segs, YG_PATH_MAX_DEPTH);
+    yg_path_seg_t segs[YG_PATH_MAX_DEPTH];
+    int           seg_count = yg_path_split(keypath, segs, YG_PATH_MAX_DEPTH);
 
     if (seg_count < 0) {
         fprintf(stderr, PROG ": invalid key path '%s' "
-                "(empty segment, trailing dot, or segment too long)\n", keypath);
+                "(empty segment, trailing dot, segment too long, "
+                "or malformed bracket index)\n", keypath);
         return YAMLGET_EXIT_BAD_ARGS;
     }
 
