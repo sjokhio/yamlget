@@ -50,7 +50,7 @@ jobs:
   # ── macOS x86_64 (Intel) ─────────────────────────────────────────────────────
   build-macos-x86_64:
     name: Build / macOS x86_64
-    runs-on: macos-13           # last GitHub-hosted Intel macOS runner
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
 
@@ -160,6 +160,22 @@ jobs:
       - name: List artifacts
         run: find dist/ -type f | sort
 
+      - name: Verify release assets
+        run: |
+          test -f dist/yamlget-linux-x86_64/yamlget-linux-x86_64
+          test -f dist/yamlget-macos-x86_64/yamlget-macos-x86_64
+          test -f dist/yamlget-macos-arm64/yamlget-macos-arm64
+          test -f dist/yamlget-windows-x86_64/yamlget-windows-x86_64.exe
+
+      - name: Generate checksums
+        run: |
+          shasum -a 256 \
+            dist/yamlget-linux-x86_64/yamlget-linux-x86_64 \
+            dist/yamlget-macos-x86_64/yamlget-macos-x86_64 \
+            dist/yamlget-macos-arm64/yamlget-macos-arm64 \
+            dist/yamlget-windows-x86_64/yamlget-windows-x86_64.exe \
+            > SHA256SUMS.txt
+
       # softprops/action-gh-release creates the release and attaches the files.
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -173,3 +189,4 @@ jobs:
             dist/yamlget-macos-x86_64/yamlget-macos-x86_64
             dist/yamlget-macos-arm64/yamlget-macos-arm64
             dist/yamlget-windows-x86_64/yamlget-windows-x86_64.exe
+            SHA256SUMS.txt
