@@ -338,6 +338,55 @@ static int read_block_scalar(yg_lexer_t *lex, yg_line_t *out,
     return 0;
 }
 
+/*
+ * Skip the body of an unsupported block scalar sequence item (`- |` or `- >`).
+ *
+ * The parser decides whether unsupported sequence syntax is relevant to the
+ * lookup path. The lexer only prevents the scalar body from being lexed as
+ * unrelated invalid mapping lines when the item is off-path.
+ */
+static int skip_sequence_block_scalar_body(yg_lexer_t *lex, yg_line_t *out,
+                                           int item_indent)
+{
+    for (;;) {
+        if (!lex->buf_pending) {
+            if (!fgets(lex->buf, sizeof(lex->buf), lex->stream)) {
+                if (!feof(lex->stream)) {
+                    fprintf(stderr, "%s: I/O error on line %d\n",
+                            lex->source, lex->lineno);
+                    out->type = YG_LINE_INVALID;
+                    return YAMLGET_EXIT_FILE_ERROR;
+                }
+                break;
+            }
+            lex->lineno++;
+        }
+        lex->buf_pending = 0;
+
+        size_t len = strlen(lex->buf);
+        if (len > 0 && lex->buf[len - 1] == '\n') lex->buf[--len] = '\0';
+        if (len > 0 && lex->buf[len - 1] == '\r') lex->buf[--len] = '\0';
+
+        if (is_blank_line(lex->buf))
+            continue;
+
+        int this_indent = yg_indent_count(lex->buf);
+        if (this_indent < 0) {
+            out->type = YG_LINE_SEQ_UNSUPPORTED;
+            break;
+        }
+
+        if (this_indent <= item_indent) {
+            lex->buf_pending = 1;
+            lex->lineno--;
+            break;
+        }
+    }
+
+    out->type = YG_LINE_SEQ_UNSUPPORTED;
+    return 0;
+}
+
 /* ── Public API ───────────────────────────────────────────────────────────── */
 
 void yg_lexer_init(yg_lexer_t *lex, FILE *stream, const char *source)
@@ -412,17 +461,12 @@ int yg_lexer_next(yg_lexer_t *lex, yg_line_t *out)
 
         /* Block scalar items (- | or - >) are deferred. */
         if (*after_dash == '|' || *after_dash == '>') {
-            fprintf(stderr, "%s:%d: block scalar sequence items not supported\n",
-                    lex->source, lex->lineno);
-            out->type = YG_LINE_INVALID;
-            return 0;
+            return skip_sequence_block_scalar_body(lex, out, out->indent);
         }
 
         /* Flow items (- { or - [) are not supported. */
         if (*after_dash == '{' || *after_dash == '[') {
-            fprintf(stderr, "%s:%d: flow sequence/mapping items not supported\n",
-                    lex->source, lex->lineno);
-            out->type = YG_LINE_INVALID;
+            out->type = YG_LINE_SEQ_UNSUPPORTED;
             return 0;
         }
 
@@ -632,6 +676,7 @@ const char *yg_line_type_name(yg_line_type_t t)
         case YG_LINE_SEQ_SCALAR:   return "SEQ_SCALAR";
         case YG_LINE_SEQ_MAPPING:  return "SEQ_MAPPING";
         case YG_LINE_SEQ_EMPTY:    return "SEQ_EMPTY";
+        case YG_LINE_SEQ_UNSUPPORTED: return "SEQ_UNSUPPORTED";
         case YG_LINE_INVALID:      return "INVALID";
         case YG_LINE_EOF:          return "EOF";
     }

@@ -106,7 +106,7 @@ yamlget - <path>         # read from stdin
 | Argument | Description |
 |----------|-------------|
 | `<file>` | Path to a YAML file, or `-` to read from stdin. |
-| `<path>` | Dot-notation key path, e.g. `server.port` or `database.host`. |
+| `<path>` | Dot-notation key path, e.g. `server.port`, `database.host`, or `servers[0].host`. |
 
 ### Examples
 
@@ -224,12 +224,15 @@ fi
 - All block scalar chomping indicators: `|` (clip), `|-` (strip), `|+` (keep)
 - Inline comment stripping (`key: value  # this is ignored`)
 - Empty values (`key:` or `key: ""`): prints an empty line, exits 0
+- Block sequence lookup with bracket indexes, e.g. `servers[0].host`
 - Stdin via `-` filename
 - LF (`\n`) and CRLF (`\r\n`) line endings
 
 ### Not supported (exits 4)
 
-- Sequences / arrays (`- item`)
+- Flow-style sequence lookup (`tags[0]` for `tags: [a, b]`)
+- Flow mapping or flow sequence items in block sequences (`- {k: v}`, `- [a, b]`)
+- Block scalar sequence items (`- |`, `- >`)
 - Multi-document streams (`---`)
 - Tab-indented files
 - Anchors and aliases (`&anchor`, `*alias`)
@@ -285,12 +288,11 @@ make bench BENCH_N=200  # custom iteration count
 - [x] Raw value output to stdout; all diagnostics to stderr (filename + line number)
 - [x] stdin support via `-`
 - [x] LF and CRLF line ending support
-- [x] 112 tests (10 lexer unit + 102 integration), zero ASan/UBSan errors
+- [x] Test suite with lexer and integration coverage, zero ASan/UBSan errors
 - [x] Pre-built binaries for Linux x86_64, macOS x86_64, macOS arm64, Windows x86_64
 
 **Planned for future releases:**
 
-- [ ] Array / sequence indexing (v0.2.0)
 - [ ] JSON output via `--json` (v0.3.0)
 - [ ] Shell export format via `--export` (v0.3.0)
 

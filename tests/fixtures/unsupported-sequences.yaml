@@ -1,0 +1,15 @@
+flow_mapping_item:
+  - {host: db.internal}
+
+flow_sequence_item:
+  - [alpha, beta]
+
+block_literal_item:
+  - |
+    echo unsupported
+
+block_folded_item:
+  - >
+    folded unsupported
+
+wanted: ok

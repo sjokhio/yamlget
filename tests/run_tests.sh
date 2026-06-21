@@ -360,6 +360,19 @@ check "seq: double-quoted item"                  0 "double quoted" "$FIXTURES/se
 check "seq: items[0] from invalid.yaml"          0 "first item"    "$FIXTURES/invalid.yaml" "items[0]"
 check "seq: items[2] from invalid.yaml"          0 "third item"    "$FIXTURES/invalid.yaml" "items[2]"
 
+# ── Unsupported sequence items off lookup path ───────────────────────────────
+
+check "unsupported seq off-path: later key still found" \
+                                                    0 "ok" "$FIXTURES/unsupported-sequences.yaml" "wanted"
+check_stderr "unsupported seq on-path: flow mapping item → exit 4" \
+                                                    4 "$FIXTURES/unsupported-sequences.yaml" "flow_mapping_item[0]"
+check_stderr "unsupported seq on-path: flow sequence item → exit 4" \
+                                                    4 "$FIXTURES/unsupported-sequences.yaml" "flow_sequence_item[0]"
+check_stderr "unsupported seq on-path: block literal item → exit 4" \
+                                                    4 "$FIXTURES/unsupported-sequences.yaml" "block_literal_item[0]"
+check_stderr "unsupported seq on-path: block folded item → exit 4" \
+                                                    4 "$FIXTURES/unsupported-sequences.yaml" "block_folded_item[0]"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo "────────────────────────────────────────"

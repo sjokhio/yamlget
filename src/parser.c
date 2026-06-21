@@ -48,10 +48,30 @@ typedef enum { YG_FRAME_MAPPING, YG_FRAME_SEQUENCE } yg_frame_kind_t;
 typedef struct {
     int             indent;       /* leading spaces of the key on this level */
     int             matched;      /* 1 if this level's key was on the lookup path */
+    int             counts_match; /* 1 if popping this frame decrements match_depth */
     yg_frame_kind_t kind;         /* MAPPING or SEQUENCE context              */
     int             seq_current;  /* for SEQUENCE: items counted so far       */
     int             seq_target;   /* for SEQUENCE: target index               */
 } frame_t;
+
+static int push_unmatched_frame(frame_t *stack, int *top,
+                                int indent, const char *source, int lineno)
+{
+    if (*top + 1 >= YG_PARSER_STACK_MAX) {
+        fprintf(stderr, "%s:%d: nesting exceeds maximum depth (%d)\n",
+                source, lineno, YG_PARSER_STACK_MAX);
+        return YAMLGET_EXIT_INTERNAL;
+    }
+
+    (*top)++;
+    stack[*top].indent      = indent;
+    stack[*top].matched     = 0;
+    stack[*top].counts_match = 0;
+    stack[*top].kind        = YG_FRAME_MAPPING;
+    stack[*top].seq_current = 0;
+    stack[*top].seq_target  = 0;
+    return YAMLGET_EXIT_OK;
+}
 
 /* ── Path splitting ───────────────────────────────────────────────────────── */
 
@@ -171,6 +191,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
             case YG_LINE_SEQ_SCALAR:
             case YG_LINE_SEQ_MAPPING:
             case YG_LINE_SEQ_EMPTY:
+            case YG_LINE_SEQ_UNSUPPORTED:
             case YG_LINE_KEY_ONLY:
             case YG_LINE_KEY_VALUE:
                 break;
@@ -178,12 +199,25 @@ int yg_stream_lookup(FILE *stream, const char *source,
 
         /* ── Step 1: pop frames at the same or deeper indent ────────────── */
         while (top >= 0 && stack[top].indent >= line.indent) {
-            if (stack[top].matched)
+            if (stack[top].counts_match)
                 match_depth--;
             top--;
         }
 
         /* ── Step 2: handle sequence item lines ─────────────────────────── */
+        if (line.type == YG_LINE_SEQ_UNSUPPORTED) {
+            if (top >= 0 && stack[top].kind == YG_FRAME_SEQUENCE && stack[top].matched) {
+                fprintf(stderr, "%s:%d: unsupported sequence item on lookup path\n",
+                        source, line.lineno);
+                return YAMLGET_EXIT_PARSE_ERROR;
+            }
+
+            int prc = push_unmatched_frame(stack, &top, line.indent, source, line.lineno);
+            if (prc != YAMLGET_EXIT_OK)
+                return prc;
+            continue;
+        }
+
         if (line.type == YG_LINE_SEQ_SCALAR ||
             line.type == YG_LINE_SEQ_MAPPING ||
             line.type == YG_LINE_SEQ_EMPTY) {
@@ -194,14 +228,9 @@ int yg_stream_lookup(FILE *stream, const char *source,
                  * Push a dummy unmatched frame so sub-keys of this item are
                  * blocked from matching our path segments.
                  */
-                if (top + 1 < YG_PARSER_STACK_MAX) {
-                    top++;
-                    stack[top].indent      = line.indent;
-                    stack[top].matched     = 0;
-                    stack[top].kind        = YG_FRAME_MAPPING;
-                    stack[top].seq_current = 0;
-                    stack[top].seq_target  = 0;
-                }
+                int prc = push_unmatched_frame(stack, &top, line.indent, source, line.lineno);
+                if (prc != YAMLGET_EXIT_OK)
+                    return prc;
                 continue;
             }
 
@@ -209,27 +238,17 @@ int yg_stream_lookup(FILE *stream, const char *source,
             if (stack[top].seq_current < stack[top].seq_target) {
                 /* Not our item yet — skip it and block its sub-keys. */
                 stack[top].seq_current++;
-                if (top + 1 < YG_PARSER_STACK_MAX) {
-                    top++;
-                    stack[top].indent      = line.indent;
-                    stack[top].matched     = 0;
-                    stack[top].kind        = YG_FRAME_MAPPING;
-                    stack[top].seq_current = 0;
-                    stack[top].seq_target  = 0;
-                }
+                int prc = push_unmatched_frame(stack, &top, line.indent, source, line.lineno);
+                if (prc != YAMLGET_EXIT_OK)
+                    return prc;
                 continue;
             }
 
             if (stack[top].seq_current > stack[top].seq_target) {
                 /* Past the target — block subsequent items. */
-                if (top + 1 < YG_PARSER_STACK_MAX) {
-                    top++;
-                    stack[top].indent      = line.indent;
-                    stack[top].matched     = 0;
-                    stack[top].kind        = YG_FRAME_MAPPING;
-                    stack[top].seq_current = 0;
-                    stack[top].seq_target  = 0;
-                }
+                int prc = push_unmatched_frame(stack, &top, line.indent, source, line.lineno);
+                if (prc != YAMLGET_EXIT_OK)
+                    return prc;
                 continue;
             }
 
@@ -270,6 +289,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
             top++;
             stack[top].indent      = line.indent;
             stack[top].matched     = 1;
+            stack[top].counts_match = 0;
             stack[top].kind        = YG_FRAME_MAPPING;
             stack[top].seq_current = 0;
             stack[top].seq_target  = 0;
@@ -293,6 +313,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
                 top++;
                 stack[top].indent      = line.indent;
                 stack[top].matched     = 1;
+                stack[top].counts_match = 1;
                 stack[top].seq_current = 0;
                 if (segs[match_depth - 1].has_index) {
                     stack[top].kind       = YG_FRAME_SEQUENCE;
@@ -339,6 +360,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
             top++;
             stack[top].indent      = line.indent;
             stack[top].matched     = 1;
+            stack[top].counts_match = 1;
             stack[top].seq_current = 0;
 
             /* If this segment has an index, push a SEQUENCE frame. */
@@ -360,6 +382,7 @@ int yg_stream_lookup(FILE *stream, const char *source,
             top++;
             stack[top].indent      = line.indent;
             stack[top].matched     = 0;
+            stack[top].counts_match = 0;
             stack[top].kind        = YG_FRAME_MAPPING;
             stack[top].seq_current = 0;
             stack[top].seq_target  = 0;

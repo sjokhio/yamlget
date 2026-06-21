@@ -26,7 +26,9 @@
  *   - Quoted keys are accepted but returned verbatim (quotes included).
  *   - Block sequence items (- scalar, - key: value, -) are classified as
  *     YG_LINE_SEQ_SCALAR, YG_LINE_SEQ_MAPPING, or YG_LINE_SEQ_EMPTY.
- *   - Block scalar sequence items (- |, - >) emit YG_LINE_INVALID.
+ *   - Unsupported sequence items (- { ... }, - [ ... ], - |, - >) are
+ *     classified as YG_LINE_SEQ_UNSUPPORTED so the parser can ignore them
+ *     when they are off the active lookup path.
  *   - Anchors, aliases, and tags are not recognised.
  */
 
@@ -56,6 +58,7 @@
  *   YG_LINE_SEQ_SCALAR  — value is set; key is empty; has_value == 1.
  *   YG_LINE_SEQ_MAPPING — key and value are set (inline key:value of item).
  *   YG_LINE_SEQ_EMPTY   — key and value are both empty; has_value == 0.
+ *   YG_LINE_SEQ_UNSUPPORTED — unsupported sequence item syntax.
  *   indent for all SEQ_* types is the column of the '-' character.
  *
  * All other types have key == "" and value == "".
@@ -68,6 +71,7 @@ typedef enum {
     YG_LINE_SEQ_SCALAR,   /* block sequence item with scalar: "- value"      */
     YG_LINE_SEQ_MAPPING,  /* block sequence item starting a mapping: "- k: v"*/
     YG_LINE_SEQ_EMPTY,    /* block sequence item with null/empty value: "-"  */
+    YG_LINE_SEQ_UNSUPPORTED, /* unsupported sequence item syntax              */
     YG_LINE_INVALID,      /* line that cannot be classified; error on stderr  */
     YG_LINE_EOF           /* end of input stream; no further lines available  */
 } yg_line_type_t;
