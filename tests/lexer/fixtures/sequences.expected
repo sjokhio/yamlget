@@ -1,0 +1,10 @@
+1|KEY_ONLY|0|tags|
+2|SEQ_SCALAR|2||alpha
+3|SEQ_SCALAR|2||beta
+4|KEY_ONLY|0|servers|
+5|SEQ_MAPPING|2|host|db.internal
+6|KEY_VALUE|4|port|5432
+7|KEY_ONLY|0|empty_seq|
+8|SEQ_EMPTY|2||
+9|KEY_VALUE|0|after|plain
+10|EOF|0||

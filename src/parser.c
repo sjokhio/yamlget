@@ -42,10 +42,15 @@
 /* Maximum YAML nesting depth the stack can represent. */
 #define YG_PARSER_STACK_MAX 64
 
+typedef enum { YG_FRAME_MAPPING, YG_FRAME_SEQUENCE } yg_frame_kind_t;
+
 /* One entry in the indentation stack. */
 typedef struct {
-    int indent;   /* leading spaces of the key on this level */
-    int matched;  /* 1 if this level's key was on the lookup path */
+    int             indent;       /* leading spaces of the key on this level */
+    int             matched;      /* 1 if this level's key was on the lookup path */
+    yg_frame_kind_t kind;         /* MAPPING or SEQUENCE context              */
+    int             seq_current;  /* for SEQUENCE: items counted so far       */
+    int             seq_target;   /* for SEQUENCE: target index               */
 } frame_t;
 
 /* ── Path splitting ───────────────────────────────────────────────────────── */
@@ -161,12 +166,14 @@ int yg_stream_lookup(FILE *stream, const char *source,
                 continue;
 
             case YG_LINE_INVALID:
-                /* Lexer already printed the diagnostic. */
                 return YAMLGET_EXIT_PARSE_ERROR;
 
+            case YG_LINE_SEQ_SCALAR:
+            case YG_LINE_SEQ_MAPPING:
+            case YG_LINE_SEQ_EMPTY:
             case YG_LINE_KEY_ONLY:
             case YG_LINE_KEY_VALUE:
-                break; /* fall through to resolution logic */
+                break;
         }
 
         /* ── Step 1: pop frames at the same or deeper indent ────────────── */
@@ -176,32 +183,145 @@ int yg_stream_lookup(FILE *stream, const char *source,
             top--;
         }
 
-        /* ── Step 2: eligibility check ───────────────────────────────────── */
-        /*
-         * A line is only eligible to be compared against the next path
-         * segment when either:
-         *   (a) the stack is empty (we are at root level), or
-         *   (b) the top frame is a "matched" frame (we descended on-path).
-         *
-         * If the top is "unmatched" we are inside a sibling branch that
-         * diverged from our target path, and we must skip this line.
-         */
-        int eligible = (top < 0 || stack[top].matched);
+        /* ── Step 2: handle sequence item lines ─────────────────────────── */
+        if (line.type == YG_LINE_SEQ_SCALAR ||
+            line.type == YG_LINE_SEQ_MAPPING ||
+            line.type == YG_LINE_SEQ_EMPTY) {
+
+            /* Ignore SEQ lines when not inside a matched SEQUENCE frame. */
+            if (top < 0 || stack[top].kind != YG_FRAME_SEQUENCE || !stack[top].matched) {
+                /*
+                 * Push a dummy unmatched frame so sub-keys of this item are
+                 * blocked from matching our path segments.
+                 */
+                if (top + 1 < YG_PARSER_STACK_MAX) {
+                    top++;
+                    stack[top].indent      = line.indent;
+                    stack[top].matched     = 0;
+                    stack[top].kind        = YG_FRAME_MAPPING;
+                    stack[top].seq_current = 0;
+                    stack[top].seq_target  = 0;
+                }
+                continue;
+            }
+
+            /* We are inside a matched SEQUENCE frame. */
+            if (stack[top].seq_current < stack[top].seq_target) {
+                /* Not our item yet — skip it and block its sub-keys. */
+                stack[top].seq_current++;
+                if (top + 1 < YG_PARSER_STACK_MAX) {
+                    top++;
+                    stack[top].indent      = line.indent;
+                    stack[top].matched     = 0;
+                    stack[top].kind        = YG_FRAME_MAPPING;
+                    stack[top].seq_current = 0;
+                    stack[top].seq_target  = 0;
+                }
+                continue;
+            }
+
+            if (stack[top].seq_current > stack[top].seq_target) {
+                /* Past the target — block subsequent items. */
+                if (top + 1 < YG_PARSER_STACK_MAX) {
+                    top++;
+                    stack[top].indent      = line.indent;
+                    stack[top].matched     = 0;
+                    stack[top].kind        = YG_FRAME_MAPPING;
+                    stack[top].seq_current = 0;
+                    stack[top].seq_target  = 0;
+                }
+                continue;
+            }
+
+            /* seq_current == seq_target: this IS our target item. Mark consumed. */
+            stack[top].seq_current++;
+
+            if (line.type == YG_LINE_SEQ_SCALAR) {
+                if (match_depth == seg_count) {
+                    printf("%s\n", line.value);
+                    return YAMLGET_EXIT_OK;
+                }
+                return YAMLGET_EXIT_NOT_FOUND;
+            }
+
+            if (line.type == YG_LINE_SEQ_EMPTY) {
+                if (match_depth == seg_count) {
+                    printf("\n");
+                    return YAMLGET_EXIT_OK;
+                }
+                return YAMLGET_EXIT_NOT_FOUND;
+            }
+
+            /* SEQ_MAPPING: enter the item's mapping. */
+            if (match_depth == seg_count) {
+                return YAMLGET_EXIT_NOT_FOUND;
+            }
+
+            /*
+             * Push a matched MAPPING frame for the item's content so that
+             * continuation keys (at deeper indent) remain eligible.
+             * Then process the inline key as the first key of this mapping.
+             */
+            if (top + 1 >= YG_PARSER_STACK_MAX) {
+                fprintf(stderr, "%s:%d: nesting exceeds maximum depth (%d)\n",
+                        source, line.lineno, YG_PARSER_STACK_MAX);
+                return YAMLGET_EXIT_INTERNAL;
+            }
+            top++;
+            stack[top].indent      = line.indent;
+            stack[top].matched     = 1;
+            stack[top].kind        = YG_FRAME_MAPPING;
+            stack[top].seq_current = 0;
+            stack[top].seq_target  = 0;
+
+            if (strcmp(line.key, segs[match_depth].key) == 0) {
+                match_depth++;
+                if (match_depth == seg_count && !segs[match_depth - 1].has_index) {
+                    if (line.has_value) {
+                        printf("%s\n", line.value);
+                    } else {
+                        printf("\n");
+                    }
+                    return YAMLGET_EXIT_OK;
+                }
+                /* Need to resolve more: push additional frame. */
+                if (top + 1 >= YG_PARSER_STACK_MAX) {
+                    fprintf(stderr, "%s:%d: nesting exceeds maximum depth (%d)\n",
+                            source, line.lineno, YG_PARSER_STACK_MAX);
+                    return YAMLGET_EXIT_INTERNAL;
+                }
+                top++;
+                stack[top].indent      = line.indent;
+                stack[top].matched     = 1;
+                stack[top].seq_current = 0;
+                if (segs[match_depth - 1].has_index) {
+                    stack[top].kind       = YG_FRAME_SEQUENCE;
+                    stack[top].seq_target = segs[match_depth - 1].index;
+                } else {
+                    stack[top].kind       = YG_FRAME_MAPPING;
+                    stack[top].seq_target = 0;
+                }
+            }
+            /* If inline key doesn't match: MATCHED frame remains so continuation
+             * keys at deeper indent are still eligible to be tested. */
+            continue;
+        }
+
+        /* ── Step 3 (mapping keys): eligibility check ───────────────────── */
+        int eligible = (top < 0 ||
+                        (stack[top].matched && stack[top].kind == YG_FRAME_MAPPING));
 
         if (eligible &&
             match_depth < seg_count &&
             strcmp(line.key, segs[match_depth].key) == 0) {
 
-            /* ── Step 3: key matches the next path segment ─────────────── */
             match_depth++;
 
-            if (match_depth == seg_count) {
-                /*
-                 * Full path matched.
-                 * KEY_VALUE -> print the scalar.
-                 * KEY_ONLY  -> the value is empty; print an empty line so
-                 *             the exit code (0 = found) is unambiguous.
-                 */
+            /*
+             * If the matched segment has no bracket index and this is the last
+             * segment, the key's inline value IS our answer.
+             */
+            if (match_depth == seg_count && !segs[match_depth - 1].has_index) {
                 if (line.type == YG_LINE_KEY_VALUE) {
                     printf("%s\n", line.value);
                 } else {
@@ -210,31 +330,39 @@ int yg_stream_lookup(FILE *stream, const char *source,
                 return YAMLGET_EXIT_OK;
             }
 
-            /* Intermediate segment matched; descend into this mapping. */
+            /* Intermediate segment, or last segment has a bracket index. */
             if (top + 1 >= YG_PARSER_STACK_MAX) {
                 fprintf(stderr, "%s:%d: nesting exceeds maximum depth (%d)\n",
                         source, line.lineno, YG_PARSER_STACK_MAX);
                 return YAMLGET_EXIT_INTERNAL;
             }
             top++;
-            stack[top].indent  = line.indent;
-            stack[top].matched = 1;
+            stack[top].indent      = line.indent;
+            stack[top].matched     = 1;
+            stack[top].seq_current = 0;
+
+            /* If this segment has an index, push a SEQUENCE frame. */
+            if (segs[match_depth - 1].has_index) {
+                stack[top].kind       = YG_FRAME_SEQUENCE;
+                stack[top].seq_target = segs[match_depth - 1].index;
+            } else {
+                stack[top].kind       = YG_FRAME_MAPPING;
+                stack[top].seq_target = 0;
+            }
 
         } else {
-            /* ── Step 4: key does not match — push unmatched frame ──────── */
-            /*
-             * We must push even on mismatch so that any deeper keys (which
-             * belong to this sibling branch) are correctly blocked from being
-             * tested against our path segments.
-             */
+            /* Key does not match or not eligible — push unmatched frame. */
             if (top + 1 >= YG_PARSER_STACK_MAX) {
                 fprintf(stderr, "%s:%d: nesting exceeds maximum depth (%d)\n",
                         source, line.lineno, YG_PARSER_STACK_MAX);
                 return YAMLGET_EXIT_INTERNAL;
             }
             top++;
-            stack[top].indent  = line.indent;
-            stack[top].matched = 0;
+            stack[top].indent      = line.indent;
+            stack[top].matched     = 0;
+            stack[top].kind        = YG_FRAME_MAPPING;
+            stack[top].seq_current = 0;
+            stack[top].seq_target  = 0;
         }
     }
 }

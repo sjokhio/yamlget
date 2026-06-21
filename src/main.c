@@ -58,9 +58,11 @@ static void print_usage(FILE *out)
         "Supported YAML:\n"
         "  Block mappings (nested, any depth), plain/single-quoted/double-quoted\n"
         "  scalars, literal block scalars (|) and folded block scalars (>),\n"
-        "  all chomping indicators (-, +), LF and CRLF line endings.\n"
+        "  all chomping indicators (-, +), LF and CRLF line endings,\n"
+        "  block sequences with bracket-index paths (e.g. servers[0].host).\n"
         "\n"
-        "Not supported (exits 4): sequences (- item), multi-document (---),\n"
+        "Not supported (exits 4): flow sequences ([a, b]), flow mappings ({k: v}),\n"
+        "  block scalar sequence items (- |), multi-document (---),\n"
         "  tab-indented files.\n"
         "\n"
         "Version: " YAMLGET_VERSION_STRING

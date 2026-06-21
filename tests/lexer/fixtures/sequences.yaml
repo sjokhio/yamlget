@@ -1,0 +1,9 @@
+tags:
+  - alpha
+  - beta
+servers:
+  - host: db.internal
+    port: 5432
+empty_seq:
+  -
+after: plain

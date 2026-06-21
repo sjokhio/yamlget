@@ -1,0 +1,30 @@
+tags:
+  - alpha
+  - beta
+  - stable
+
+servers:
+  - host: db.internal
+    port: 5432
+  - host: cache.internal
+    port: 6379
+
+pipeline:
+  steps:
+    - name: build
+      image: golang:1.22
+    - name: test
+      image: golang:1.22
+    - name: deploy
+      image: alpine:3
+
+empty_seq:
+  -
+  - second
+
+single_item:
+  - only
+
+quoted_items:
+  - 'single quoted'
+  - "double quoted"

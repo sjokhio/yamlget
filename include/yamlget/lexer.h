@@ -19,12 +19,14 @@
  *   - Fail-fast: errors are reported immediately to stderr with filename and
  *     line number; the offending line is classified as YG_LINE_INVALID.
  *
- * Limitations in v0.1.0:
+ * Supported:
  *   - Block scalars (| and >) are fully supported: literal, folded, and all
  *     three chomping indicators (clip/strip/keep). Values are assembled into
  *     yg_line_t.value with embedded '\n' separators where appropriate.
  *   - Quoted keys are accepted but returned verbatim (quotes included).
- *   - Sequence items (- ...) are classified as YG_LINE_INVALID.
+ *   - Block sequence items (- scalar, - key: value, -) are classified as
+ *     YG_LINE_SEQ_SCALAR, YG_LINE_SEQ_MAPPING, or YG_LINE_SEQ_EMPTY.
+ *   - Block scalar sequence items (- |, - >) emit YG_LINE_INVALID.
  *   - Anchors, aliases, and tags are not recognised.
  */
 
@@ -48,19 +50,26 @@
 /*
  * Structural classification of one logical YAML line.
  *
- * Only two types carry structured data (key / value):
- *   YG_LINE_KEY_ONLY  — key is set; value is empty; has_value == 0.
- *   YG_LINE_KEY_VALUE — key and value are both set; has_value == 1.
+ * Types that carry structured data:
+ *   YG_LINE_KEY_ONLY    — key is set; value is empty; has_value == 0.
+ *   YG_LINE_KEY_VALUE   — key and value are both set; has_value == 1.
+ *   YG_LINE_SEQ_SCALAR  — value is set; key is empty; has_value == 1.
+ *   YG_LINE_SEQ_MAPPING — key and value are set (inline key:value of item).
+ *   YG_LINE_SEQ_EMPTY   — key and value are both empty; has_value == 0.
+ *   indent for all SEQ_* types is the column of the '-' character.
  *
  * All other types have key == "" and value == "".
  */
 typedef enum {
-    YG_LINE_BLANK,      /* empty or whitespace-only                        */
-    YG_LINE_COMMENT,    /* first non-space character is '#'                */
-    YG_LINE_KEY_ONLY,   /* mapping entry with no scalar: "key:"            */
-    YG_LINE_KEY_VALUE,  /* mapping entry with scalar:   "key: value"       */
-    YG_LINE_INVALID,    /* line that cannot be classified; error on stderr  */
-    YG_LINE_EOF         /* end of input stream; no further lines available  */
+    YG_LINE_BLANK,        /* empty or whitespace-only                        */
+    YG_LINE_COMMENT,      /* first non-space character is '#'                */
+    YG_LINE_KEY_ONLY,     /* mapping entry with no scalar: "key:"            */
+    YG_LINE_KEY_VALUE,    /* mapping entry with scalar:   "key: value"       */
+    YG_LINE_SEQ_SCALAR,   /* block sequence item with scalar: "- value"      */
+    YG_LINE_SEQ_MAPPING,  /* block sequence item starting a mapping: "- k: v"*/
+    YG_LINE_SEQ_EMPTY,    /* block sequence item with null/empty value: "-"  */
+    YG_LINE_INVALID,      /* line that cannot be classified; error on stderr  */
+    YG_LINE_EOF           /* end of input stream; no further lines available  */
 } yg_line_type_t;
 
 /* ── Lexer record ─────────────────────────────────────────────────────────── */

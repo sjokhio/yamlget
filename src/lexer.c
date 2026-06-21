@@ -404,6 +404,126 @@ int yg_lexer_next(yg_lexer_t *lex, yg_line_t *out)
         return 0;
     }
 
+    /* ── Block sequence item: "- value", "- key: val", or bare "-" ──────── */
+    if (*p == '-' && (*(p + 1) == ' ' || *(p + 1) == '\0')) {
+        const char *after_dash = p + 1;
+        while (*after_dash == ' ' || *after_dash == '\t')
+            after_dash++;
+
+        /* Block scalar items (- | or - >) are deferred. */
+        if (*after_dash == '|' || *after_dash == '>') {
+            fprintf(stderr, "%s:%d: block scalar sequence items not supported\n",
+                    lex->source, lex->lineno);
+            out->type = YG_LINE_INVALID;
+            return 0;
+        }
+
+        /* Flow items (- { or - [) are not supported. */
+        if (*after_dash == '{' || *after_dash == '[') {
+            fprintf(stderr, "%s:%d: flow sequence/mapping items not supported\n",
+                    lex->source, lex->lineno);
+            out->type = YG_LINE_INVALID;
+            return 0;
+        }
+
+        /* Empty item: bare "-" or "- " with nothing after. */
+        if (*after_dash == '\0' || *after_dash == '#') {
+            out->type      = YG_LINE_SEQ_EMPTY;
+            out->has_value = 0;
+            return 0;
+        }
+
+        /* Check for an inline mapping: "- key: value" or "- key:" */
+        const char *seq_colon = find_mapping_colon(after_dash);
+        if (seq_colon) {
+            size_t key_len = (size_t)(seq_colon - after_dash);
+            while (key_len > 0 && isspace((unsigned char)after_dash[key_len - 1]))
+                key_len--;
+
+            if (key_len == 0) {
+                fprintf(stderr, "%s:%d: sequence mapping item has empty key\n",
+                        lex->source, lex->lineno);
+                out->type = YG_LINE_INVALID;
+                return 0;
+            }
+            if (key_len >= YG_KEY_MAX) {
+                fprintf(stderr, "%s:%d: key exceeds maximum length (%d bytes)\n",
+                        lex->source, lex->lineno, YG_KEY_MAX - 1);
+                out->type = YG_LINE_INVALID;
+                return 0;
+            }
+            memcpy(out->key, after_dash, key_len);
+            out->key[key_len] = '\0';
+
+            const char *val = seq_colon + 1;
+            while (*val == ' ' || *val == '\t')
+                val++;
+
+            out->type = YG_LINE_SEQ_MAPPING;
+            if (*val == '\0' || *val == '#') {
+                out->has_value = 0;
+            } else if (*val == '\'') {
+                out->has_value = 1;
+                if (unescape_single(val + 1, out->value, YG_VALUE_MAX) < 0) {
+                    fprintf(stderr, "%s:%d: unterminated single-quoted scalar\n",
+                            lex->source, lex->lineno);
+                    out->type = YG_LINE_INVALID;
+                }
+            } else if (*val == '"') {
+                out->has_value = 1;
+                if (unescape_double(val + 1, out->value, YG_VALUE_MAX) < 0) {
+                    fprintf(stderr, "%s:%d: unterminated double-quoted scalar\n",
+                            lex->source, lex->lineno);
+                    out->type = YG_LINE_INVALID;
+                }
+            } else {
+                size_t val_len = strlen(val);
+                if (val_len >= YG_VALUE_MAX) {
+                    fprintf(stderr, "%s:%d: scalar value exceeds maximum length (%d bytes)\n",
+                            lex->source, lex->lineno, YG_VALUE_MAX - 1);
+                    out->type = YG_LINE_INVALID;
+                    return 0;
+                }
+                memcpy(out->value, val, val_len + 1);
+                strip_inline_comment(out->value);
+                strip_trailing_ws(out->value);
+                out->has_value = 1;
+            }
+            return 0;
+        }
+
+        /* Plain or quoted scalar item: "- value" */
+        out->type = YG_LINE_SEQ_SCALAR;
+        if (*after_dash == '\'') {
+            out->has_value = 1;
+            if (unescape_single(after_dash + 1, out->value, YG_VALUE_MAX) < 0) {
+                fprintf(stderr, "%s:%d: unterminated single-quoted scalar\n",
+                        lex->source, lex->lineno);
+                out->type = YG_LINE_INVALID;
+            }
+        } else if (*after_dash == '"') {
+            out->has_value = 1;
+            if (unescape_double(after_dash + 1, out->value, YG_VALUE_MAX) < 0) {
+                fprintf(stderr, "%s:%d: unterminated double-quoted scalar\n",
+                        lex->source, lex->lineno);
+                out->type = YG_LINE_INVALID;
+            }
+        } else {
+            size_t val_len = strlen(after_dash);
+            if (val_len >= YG_VALUE_MAX) {
+                fprintf(stderr, "%s:%d: scalar value exceeds maximum length (%d bytes)\n",
+                        lex->source, lex->lineno, YG_VALUE_MAX - 1);
+                out->type = YG_LINE_INVALID;
+                return 0;
+            }
+            memcpy(out->value, after_dash, val_len + 1);
+            strip_inline_comment(out->value);
+            strip_trailing_ws(out->value);
+            out->has_value = 1;
+        }
+        return 0;
+    }
+
     /* ── Mapping entry ──────────────────────────────────────────────────── */
     const char *colon = find_mapping_colon(p);
     if (!colon) {
@@ -505,12 +625,15 @@ int yg_lexer_next(yg_lexer_t *lex, yg_line_t *out)
 const char *yg_line_type_name(yg_line_type_t t)
 {
     switch (t) {
-        case YG_LINE_BLANK:     return "BLANK";
-        case YG_LINE_COMMENT:   return "COMMENT";
-        case YG_LINE_KEY_ONLY:  return "KEY_ONLY";
-        case YG_LINE_KEY_VALUE: return "KEY_VALUE";
-        case YG_LINE_INVALID:   return "INVALID";
-        case YG_LINE_EOF:       return "EOF";
+        case YG_LINE_BLANK:        return "BLANK";
+        case YG_LINE_COMMENT:      return "COMMENT";
+        case YG_LINE_KEY_ONLY:     return "KEY_ONLY";
+        case YG_LINE_KEY_VALUE:    return "KEY_VALUE";
+        case YG_LINE_SEQ_SCALAR:   return "SEQ_SCALAR";
+        case YG_LINE_SEQ_MAPPING:  return "SEQ_MAPPING";
+        case YG_LINE_SEQ_EMPTY:    return "SEQ_EMPTY";
+        case YG_LINE_INVALID:      return "INVALID";
+        case YG_LINE_EOF:          return "EOF";
     }
     return "UNKNOWN";
 }

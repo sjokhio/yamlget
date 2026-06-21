@@ -1,11 +1,11 @@
-# invalid.yaml — YAML that uses sequences, which yamlget does not support.
+# invalid.yaml — YAML with block sequences used for sequence-related tests.
 #
-# Any query against this file must produce exit code 4 (YAMLGET_EXIT_PARSE_ERROR)
-# because the sequence items below are not mapping entries and the lexer will
-# classify them as INVALID.
+# In v0.2.0 block sequences are valid. Behavior:
+#   - "items[0]"    -> exit 0 ("first item")
+#   - "items.child" -> exit 1 (no "child" mapping key; sequence on path, no index)
+#   - "nonexistent" -> exit 1 (key not found; sequences off-path are skipped)
 
 items:
   - first item
   - second item
   - third item
-name: this line is never reached

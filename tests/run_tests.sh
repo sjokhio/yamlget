@@ -227,10 +227,10 @@ check "ci: deploy.health_check.path"             0 "/healthz"              "$FIX
 check "ci: notifications.slack.channel"          0 "#deployments"          "$FIXTURES/ci-pipeline.yaml" "notifications.slack.channel"
 check "ci: missing key → exit 1"                 1 ""                      "$FIXTURES/ci-pipeline.yaml" "deploy.nonexistent"
 
-# ── Parse errors ──────────────────────────────────────────────────────────────
+# ── Sequences off lookup path (gracefully skipped in v0.2.0) ─────────────────
 
-check_stderr "sequence items → exit 4"            4  "$FIXTURES/invalid.yaml" "name"
-check_stderr "sequence: descend → exit 4"         4  "$FIXTURES/invalid.yaml" "items.child"
+check_stderr "seq off-path: key not found → exit 1"   1  "$FIXTURES/invalid.yaml" "nonexistent"
+check_stderr "seq on-path, no index → exit 1"         1  "$FIXTURES/invalid.yaml" "items.child"
 
 # ── block-scalars.yaml — literal and folded block scalars ────────────────────
 
@@ -334,11 +334,31 @@ check_stderr "path: trailing dot after bracket a[0]."  2 "$FIXTURES/simple.yaml"
 # Valid bracket syntax parses successfully; lookup result depends on content.
 # These confirm that syntactically valid bracket paths reach the lookup stage
 # and never exit 2 from path syntax rejection.
-# (Index semantics are not yet enforced; the parser matches on key name only.)
-check_stderr "path: valid key[0] parses OK (exits 0, key found)" \
-                                                    0  "$FIXTURES/simple.yaml" "name[0]"
-check_stderr "path: valid key[0] parses OK (exits 1, key missing)" \
+check_stderr "path: valid key[0] on scalar key → exit 1" \
+                                                    1  "$FIXTURES/simple.yaml" "name[0]"
+check_stderr "path: valid key[0] missing key → exit 1" \
                                                     1  "$FIXTURES/simple.yaml" "nonexistent[0]"
+
+# ── sequences.yaml — block sequence index lookup ─────────────────────────────
+
+check "seq: scalar index 0"                      0 "alpha"         "$FIXTURES/sequences.yaml" "tags[0]"
+check "seq: scalar index 1"                      0 "beta"          "$FIXTURES/sequences.yaml" "tags[1]"
+check "seq: scalar index 2"                      0 "stable"        "$FIXTURES/sequences.yaml" "tags[2]"
+check_stderr "seq: index out of range → exit 1"  1                 "$FIXTURES/sequences.yaml" "tags[5]"
+check "seq: mapping item, first"                 0 "db.internal"   "$FIXTURES/sequences.yaml" "servers[0].host"
+check "seq: mapping item, second"                0 "6379"          "$FIXTURES/sequences.yaml" "servers[1].port"
+check "seq: 3-level path[2].key"                 0 "deploy"        "$FIXTURES/sequences.yaml" "pipeline.steps[2].name"
+check "seq: 3-level path[0].key"                 0 "golang:1.22"   "$FIXTURES/sequences.yaml" "pipeline.steps[0].image"
+check_stderr "seq: key not in item → exit 1"     1                 "$FIXTURES/sequences.yaml" "servers[0].nonexistent"
+check_stderr "seq: final seg is mapping → exit 1" 1                "$FIXTURES/sequences.yaml" "servers[0]"
+check_stderr "seq: key not a sequence → exit 1"  1                 "$FIXTURES/sequences.yaml" "pipeline.steps[0].name[0]"
+check_exact "seq: empty item index 0"            0 ""              "$FIXTURES/sequences.yaml" "empty_seq[0]"
+check "seq: non-empty after empty"               0 "second"        "$FIXTURES/sequences.yaml" "empty_seq[1]"
+check "seq: single item"                         0 "only"          "$FIXTURES/sequences.yaml" "single_item[0]"
+check "seq: single-quoted item"                  0 "single quoted" "$FIXTURES/sequences.yaml" "quoted_items[0]"
+check "seq: double-quoted item"                  0 "double quoted" "$FIXTURES/sequences.yaml" "quoted_items[1]"
+check "seq: items[0] from invalid.yaml"          0 "first item"    "$FIXTURES/invalid.yaml" "items[0]"
+check "seq: items[2] from invalid.yaml"          0 "third item"    "$FIXTURES/invalid.yaml" "items[2]"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 

@@ -13,16 +13,18 @@
  *   - No AST — single streaming pass, minimum state.
  *   - No global state; all state is stack-allocated inside yg_stream_lookup.
  *
- * Supported YAML subset in v0.1.0:
+ * Supported YAML subset:
  *   - Block mappings, arbitrarily nested (indent-based).
+ *   - Block sequences with bracket-index path syntax (e.g. servers[0].host).
  *   - Scalar values: plain, single-quoted, double-quoted.
  *   - Block scalars: literal (|) and folded (>), all chomping indicators.
  *   - Blank lines and comments (ignored).
  *   - CRLF and LF line endings.
  *
  * Explicitly unsupported (returns YAMLGET_EXIT_PARSE_ERROR):
- *   - Sequences / arrays (- item).
- *   - Any line the lexer cannot classify as a mapping entry.
+ *   - Flow sequences ([a, b, c]) and flow mapping items (- {k: v}).
+ *   - Block scalar sequence items (- | or - >).
+ *   - Any line the lexer cannot classify.
  *
  * Silently unsupported (not present in the lookup path — ignored):
  *   - Anchors, aliases, tags, merge keys.
