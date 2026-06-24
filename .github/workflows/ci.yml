@@ -142,7 +142,7 @@ jobs:
           Check "database.port"  0 "5432"        @("$fx\nested.yaml", "database.port")
           Check "3-level path"   0 "admin"       @("$fx\nested.yaml", "database.credentials.username")
           Check "not found → 1"  1 $null         @("$fx\nested.yaml", "nonexistent")
-          Check "invalid → 4"    4 $null         @("$fx\invalid.yaml", "name")
+          Check "malformed → 4"  4 $null         @("$fx\malformed-block.yaml", "key")
 
           Write-Host "Results: $pass passed, $fail failed"
           if ($fail -gt 0) { exit 1 }
