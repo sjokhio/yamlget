@@ -1,20 +1,23 @@
 # Future Roadmap
 
-This document tracks ideas and feature requests that are out of scope for v0.1.0 but may be considered for future releases. Nothing here is committed. Priority and sequencing will be determined based on community feedback and maintainer capacity.
+This document tracks ideas and feature requests that are planned or under consideration for future releases. Nothing here is committed. Priority and sequencing will be determined based on community feedback and maintainer capacity.
 
 Items are grouped by release candidate. All are subject to change.
 
 ---
 
-## v0.2.0: Sequences
+## v0.2.0: Sequences (released)
 
 **Theme:** Make `yamlget` useful for YAML files that contain lists.
 
-- Array indexing by integer: `servers.0.host`, `items.2`
-- Negative indexing: `items.-1` (last element)
-- Tests and fixtures for all sequence types
+Shipped in v0.2.0:
+- Bracket-index path syntax: `servers[0].host`, `tags[2]`, `pipeline.steps[1].name`
+- Block sequences of scalars and block sequences of mappings
+- Zero-based, non-negative integer indexes only
+- 143 tests total (132 integration, 11 lexer)
 
-**Not included:** filtering, slicing, wildcard matching.
+Deferred to a future release: negative indexing, slices, wildcards, flow
+sequences, block scalar sequence items, nested sequence indexing.
 
 ---
 

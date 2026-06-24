@@ -8,8 +8,9 @@ Thank you for your interest in contributing. `yamlget` is intentionally a small,
 
 Before contributing a new feature, ask: *does this belong in a key extractor?* Features that are out of scope will not be accepted regardless of implementation quality. When in doubt, open an issue first to discuss.
 
-**In scope for v0.1.0 (shipped):**
+**Shipped (v0.1.0 and v0.2.0):**
 - Dot-notation path lookup in nested mappings
+- Bracket-index sequence lookup: `servers[0].host`, `tags[2]`
 - Scalar value output (strings, integers, booleans, floats, null)
 - Block scalars: literal (`|`) and folded (`>`) with all chomping indicators
 - stdin support
@@ -24,9 +25,8 @@ Before contributing a new feature, ask: *does this belong in a key extractor?* F
 - Templating or expression evaluation
 
 **Planned for future releases:**
-- Array indexing
-- JSON output format
-- Shell export format
+- JSON output format (`--json`)
+- Shell export format (`--export`)
 - Shell completion scripts
 - Multi-file matching
 

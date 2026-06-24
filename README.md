@@ -90,7 +90,7 @@ cl /W4 /WX /O2 /std:c17 /D_CRT_SECURE_NO_WARNINGS /Fe:yamlget.exe /Iinclude ^
 ### Verify
 
 ```sh
-yamlget --version   # prints: 0.1.0
+yamlget --version   # prints: 0.2.0
 yamlget --help
 ```
 
@@ -133,6 +133,33 @@ yamlget config.yaml app.name          # myservice
 yamlget config.yaml database.port     # 5432
 yamlget config.yaml deploy.image.tag  # latest
 ```
+
+### Sequence lookup
+
+Use bracket-index notation to extract values from block sequences:
+
+```yaml
+# config.yaml
+servers:
+  - host: db.internal
+    port: 5432
+  - host: cache.internal
+    port: 6379
+
+tags:
+  - alpha
+  - beta
+  - stable
+```
+
+```sh
+yamlget config.yaml servers[0].host   # db.internal
+yamlget config.yaml servers[1].port   # 6379
+yamlget config.yaml tags[2]           # stable
+```
+
+Indexes are zero-based. An out-of-range index exits 1. A bracket index on a scalar
+or mapping value also exits 1.
 
 ### Stdin
 
@@ -250,7 +277,7 @@ Timings include full process startup + file parse + output (what a shell script 
 
 | Tool | ms / invocation | vs yamlget |
 |------|:---------------:|:----------:|
-| **yamlget 0.1.0** | **~1.5 ms** | 1x (baseline) |
+| **yamlget 0.2.0** | **~1.5 ms** | 1x (baseline) |
 | python3 + PyYAML | ~24 ms | ~16x slower |
 | python3 + ruamel.yaml | ~30 ms (est.) | ~20x slower |
 | yq (Go) | ~5-15 ms (est.) | ~3-10x slower |
@@ -266,7 +293,7 @@ make bench BENCH_N=200  # custom iteration count
 
 ## Status
 
-`v0.1.0` - first stable release.
+Current stable release: `v0.2.0`.
 
 | Milestone | Status |
 |-----------|:------:|
@@ -274,21 +301,23 @@ make bench BENCH_N=200  # custom iteration count
 | M2: Streaming lexer | done |
 | M3: Streaming path resolution | done |
 | M4: YAML compatibility hardening | done |
-| M5: Polish & release | done |
+| M5: Polish & release (v0.1.0) | done |
+| M6: Block sequence lookup (v0.2.0) | done |
 
-**Supported in v0.1.0:**
+**Supported in v0.2.0:**
 
-- [x] Streaming lexer: blank / comment / key-only / key-value line classification
+- [x] Streaming lexer: blank / comment / key-only / key-value / sequence item classification
 - [x] Plain, single-quoted, and double-quoted scalar extraction
 - [x] Literal block scalars (`|`) and folded block scalars (`>`)
 - [x] All chomping indicators (`-`, `+`)
 - [x] Indentation depth tracking via pop-based stack (no AST, no dynamic allocation)
 - [x] Dot-notation path lookup with sibling-branch isolation
+- [x] Bracket-index sequence lookup: `servers[0].host`, `tags[2]`
 - [x] Exact key matching (no prefix or suffix bleed)
 - [x] Raw value output to stdout; all diagnostics to stderr (filename + line number)
 - [x] stdin support via `-`
 - [x] LF and CRLF line ending support
-- [x] Test suite with lexer and integration coverage, zero ASan/UBSan errors
+- [x] 132 integration tests + 11 lexer unit tests, zero ASan/UBSan errors
 - [x] Pre-built binaries for Linux x86_64, macOS x86_64, macOS arm64, Windows x86_64
 
 **Planned for future releases:**

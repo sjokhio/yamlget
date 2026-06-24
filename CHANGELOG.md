@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-06-20
+
+### Added: M6 (Block Sequence Lookup)
+
+- Bracket-index path syntax: `key[N]` per dot-notation segment
+  (e.g. `servers[0].host`, `pipeline.steps[2].name`, `tags[1]`)
+- `yg_path_seg_t` struct: each path segment now carries an optional
+  `has_index` / `index` pair alongside the key name
+- `yg_path_split()` updated to parse and validate bracket indexes;
+  rejects: empty `[]`, negative values, non-decimal content, leading zeros
+  on multi-digit numbers, unclosed brackets, content after `]`, overflow
+- Lexer: three new line types - `YG_LINE_SEQ_SCALAR`, `YG_LINE_SEQ_MAPPING`,
+  `YG_LINE_SEQ_EMPTY` - for block sequence items (`- value`, `- key: val`, `-`)
+- Flow sequence/mapping items (`- {k: v}`, `- [a, b]`) and block scalar
+  sequence items (`- |`, `- >`) emit `YG_LINE_INVALID` (exit 4; deferred)
+- Parser: `frame_t` extended with `kind` (MAPPING/SEQUENCE), `seq_current`,
+  `seq_target`; when a matched segment has `has_index`, a `YG_FRAME_SEQUENCE`
+  frame is pushed and items are counted until `seq_current == seq_target`
+- Sequences outside the active lookup path are now skipped gracefully (exit 1)
+  instead of exiting 4; this is a compatibility improvement for files that mix
+  mappings and sequences
+- `tests/fixtures/sequences.yaml`: comprehensive block sequence fixture
+  (flat scalars, mapping items, nested sequences, empty items, quoted items)
+- `tests/lexer/fixtures/sequences.yaml` + `.expected`: lexer unit test covering
+  all three new sequence line types
+- 18 new integration tests; total: 132 integration + 11 lexer = 143 tests
+- Path syntax rejection tests (10 cases) verify all malformed bracket forms
+  exit 2 without opening the input file
+
+### Changed
+
+- `yg_stream_lookup()` parameter type: `char[][YG_KEY_MAX]` -> `yg_path_seg_t *`
+  (internal API; no effect on CLI callers)
+- Two v0.1.0 integration tests updated: sequences encountered off the lookup
+  path now exit 1 (not found) rather than 4 (parse error)
+- `tests/fixtures/invalid.yaml` comment updated to reflect v0.2.0 behavior
+
+---
+
 ## [0.1.0] - 2026-06-12
 
 ### Added: M5 (Polish & Release)
@@ -104,5 +143,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/sjokhio/yamlget/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sjokhio/yamlget/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sjokhio/yamlget/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sjokhio/yamlget/releases/tag/v0.1.0

@@ -95,11 +95,11 @@ Push the release branch (not the tag yet) to GitHub and verify:
 ./yamlget --version
 
 # Create an annotated tag (preferred) or signed tag (if you have a GPG key)
-git tag -a v0.1.0 -m "Release v0.1.0"
-# or: git tag -s v0.1.0 -m "Release v0.1.0"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+# or: git tag -s vX.Y.Z -m "Release vX.Y.Z"
 
 # Push the tag - this triggers the release workflow
-git push origin v0.1.0
+git push origin vX.Y.Z
 ```
 
 - [ ] Tag is pushed to GitHub
@@ -126,7 +126,7 @@ Download each artifact from the GitHub Release page and run:
 ```sh
 # Linux (on a Linux machine or container)
 chmod +x yamlget-linux-x86_64
-./yamlget-linux-x86_64 --version       # must print 0.1.0
+./yamlget-linux-x86_64 --version       # must print the expected version
 echo "key: value" | ./yamlget-linux-x86_64 - key   # must print "value"
 
 # macOS Intel (on an Intel Mac or Rosetta)
@@ -150,7 +150,7 @@ chmod +x yamlget-macos-arm64
 
 ## 11. GitHub Release page
 
-- [ ] Release is titled correctly (`yamlget v0.1.0`)
+- [ ] Release is titled correctly (`yamlget vX.Y.Z`)
 - [ ] Release is marked as "Latest release" (not pre-release, not draft)
 - [ ] All 4 binaries are attached as assets
 - [ ] Release notes are accurate
@@ -165,8 +165,8 @@ git checkout -b next-dev
 ```
 
 - [ ] Add `## [Unreleased]` section to `CHANGELOG.md`
-- [ ] Open GitHub milestone for v0.2.0 (if applicable)
-- [ ] Close GitHub milestone for v0.1.0
+- [ ] Open GitHub milestone for next release (if applicable)
+- [ ] Close GitHub milestone for this release
 
 ---
 
