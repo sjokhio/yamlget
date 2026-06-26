@@ -282,7 +282,8 @@ Timings include full process startup + file parse + output (what a shell script 
 | python3 + ruamel.yaml | ~30 ms (est.) | ~20x slower |
 | yq (Go) | ~5-15 ms (est.) | ~3-10x slower |
 
-> Numbers are indicative. Process startup dominates for small files. Run `make bench` to measure on your own hardware.
+> Rows marked `(est.)` are illustrative estimates for general comparison.
+> Process startup dominates for small files. Run `make bench` to measure on your own hardware.
 
 ```sh
 make bench              # 1000 iterations (default)
@@ -325,7 +326,8 @@ Current stable release: `v0.2.0`.
 - [ ] JSON output via `--json` (v0.3.0)
 - [ ] Shell export format via `--export` (v0.3.0)
 
-See [docs/roadmap-v0.1.0.md](docs/roadmap-v0.1.0.md) and [docs/roadmap-future.md](docs/roadmap-future.md).
+See [docs/roadmap-future.md](docs/roadmap-future.md). The
+[v0.1.0 roadmap](docs/roadmap-v0.1.0.md) is historical.
 
 ---
 
